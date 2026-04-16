@@ -1,0 +1,19 @@
+{
+  "mcpServers": [
+    {
+      "name": "local_read_mcp",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "./backend/mcp/Local_Read_MCP",
+        "run",
+        "--with",
+        "local_read_mcp",
+        "python",
+        "-m",
+        "local_read_mcp.server"
+      ],
+      "env": {}
+    }
+  ]
+}

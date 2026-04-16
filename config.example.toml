@@ -1,0 +1,35 @@
+# 合同智能助手配置文件
+# 复制此文件为 config.toml 并根据需要修改
+
+[app]
+name = "合同智能助手"
+host = "0.0.0.0"
+port = 8000
+database_url = "sqlite:///./contracts.db"
+
+[llm]
+default_model = "deepseek/deepseek-chat"
+
+[providers]
+# DeepSeek配置 (推荐)
+[providers.deepseek]
+api_key = "your_deepseek_api_key_here"
+api_base = "https://api.deepseek.com"
+
+# 火山引擎Coding Plan配置 (推荐国内使用)
+[providers.volcengine]
+api_key = "your_volc_api_key_here"
+api_base = "https://ark.cn-beijing.volces.com/api/v3"
+
+# 火山引擎Coding Plan (coding endpoint)
+[providers.volcengine_coding_plan]
+api_key = "your_volc_api_key_here"
+api_base = "https://ark.cn-beijing.volces.com/api/coding/v3"
+
+# Anthropic配置 (备选)
+[providers.anthropic]
+api_key = "your_anthropic_api_key_here"
+api_base = "https://api.anthropic.com"
+
+[cors]
+origins = ["http://localhost:5173", "http://localhost:3000"]
