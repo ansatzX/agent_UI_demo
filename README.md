@@ -42,8 +42,8 @@
 ### 步骤 1：克隆项目
 
 ```bash
-git clone <your-repo-url>
-cd cuhksz_demo
+git clone https://github.com/ansatzX/agent_UI_demo.git
+cd agent_UI_demo
 ```
 
 ### 步骤 2：配置 LLM API
