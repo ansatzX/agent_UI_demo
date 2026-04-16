@@ -1,32 +1,33 @@
-# 企业技术合同智能助手
+# 企业合同智能助手
 
-一个基于AI的合同智能助手，帮助甲方用户完成服务采购和框架协议的全流程管理。
+一个基于AI的合同智能助手，支持多文件上传、智能对话和合同审查。
 
 ## 功能特性
 
-- 📄 **Word模板解析** - 自动识别合同模板中的可填写字段
-- 🤖 **AI智能助手** - 自然语言对话，提供专业建议
-- ✏️ **智能填充** - 对话式引导填写合同内容
-- 🔍 **风险审查** - AI分析合同风险，提供修改建议
-- 📋 **流程解释** - 详细说明合同审批流程
-- 💾 **本地存储** - 数据本地保存，保护隐私
+- 📄 **文件上传与预览** - 支持 Word 文档上传、拖放，实时预览
+- 🤖 **AI智能助手** - 基于 LiteLLM 的多模型支持（支持火山引擎等）
+- 📎 **多文件管理** - 同一会话支持多个文件上传和管理
+- 💬 **会话持久化** - JSONL 格式存储对话历史，刷新不丢失
+- 🔍 **智能审查** - AI 分析合同风险，提供专业建议
+- 📋 **流程引导** - 引导用户完成合同创建和审查流程
+- 💾 **本地存储** - 数据本地保存，保护隐私安全
 
 ## 技术栈
 
 ### 后端
-- Python 3.10+
-- FastAPI - Web框架
-- SQLModel - ORM
-- SQLite - 数据库
-- python-docx/docxtpl - Word处理
-- LiteLLM - 统一LLM接口
-- uv - 包管理
+- **Python 3.10+**
+- **FastAPI** - 高性能 Web 框架
+- **SQLModel** - 现代 ORM（SQLite 数据库）
+- **python-docx** - Word 文档解析
+- **LiteLLM** - 统一 LLM 接口（支持 OpenAI、Anthropic、火山引擎等）
+- **uv** - 快速 Python 包管理
 
 ### 前端
-- Vue 3 + TypeScript
-- Pinia - 状态管理
-- Vite - 构建工具
-- Axios - HTTP客户端
+- **Vue 3 + TypeScript** - 现代前端框架
+- **Pinia** - 状态管理
+- **Vite** - 快速构建工具
+- **@vue-office/docx** - Word 文档预览
+- **Axios** - HTTP 客户端
 
 ## 快速开始
 
@@ -34,88 +35,112 @@
 
 - Python 3.10+
 - Node.js 18+
-- uv (Python包管理)
-- Anthropic API Key
+- uv (Python 包管理器)
+- LLM API Key（支持火山引擎、OpenAI、Anthropic 等）
 
-### 后端设置
+### 一键启动
 
-1. 克隆项目并进入目录
+1. 克隆项目
 ```bash
 cd cuhksz_demo
 ```
 
-2. 使用uv创建虚拟环境并安装依赖
+2. 配置 LLM API
 ```bash
-uv venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-uv pip install -e .
+cp config.example.toml config.toml
+# 编辑 config.toml，填入你的 LLM API 配置
 ```
 
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑 .env 文件，填入你的 ANTHROPIC_API_KEY
+配置示例：
+```toml
+[llm]
+model = "volcengine_coding_plan/doubao-pro-32k"  # 火山引擎模型
+
+[providers.volcengine_coding_plan]
+api_key = "your-api-key"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
 ```
 
-4. 启动后端服务
+3. 启动应用
 ```bash
-cd backend
-uv run python -m backend.src.main
+./start.sh
 ```
 
-后端将在 http://localhost:8000 启动
+脚本会自动：
+- 创建 Python 虚拟环境
+- 安装所有依赖（前端+后端）
+- 启动后端服务（http://localhost:8000）
+- 启动前端服务（http://localhost:5173）
 
-### 前端设置
+4. 访问应用
+打开浏览器访问：http://localhost:5173
 
-1. 打开新终端，进入frontend目录
+### 停止服务
+
 ```bash
-cd frontend
+./stop.sh
 ```
 
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 启动开发服务器
-```bash
-npm run dev
-```
-
-前端将在 http://localhost:5173 启动
+或者按 `Ctrl+C` 停止启动脚本
 
 ## 使用说明
 
 1. 打开浏览器访问 http://localhost:5173
-2. AI助手会主动问候并提供操作选项
-3. 与AI对话开始使用合同管理功能
+2. 在左侧聊天区域拖放 Word 文档上传
+3. 与 AI 助手对话，询问合同相关问题
+4. 点击消息中的文件链接查看文档
+5. 右侧预览区支持缩放、下载等操作
+
+### 文件管理
+
+- **上传文件**：拖放 Word 文档到聊天区域
+- **查看文件**：点击消息中的📎文件链接
+- **多文件**：同一会话可上传多个文件
+- **历史记录**：切换会话或刷新页面，文件链接依然保留
 
 ## 项目结构
 
 ```
 cuhksz_demo/
-├── backend/                 # Python后端
+├── backend/                 # Python 后端
 │   ├── src/
-│   │   ├── api/            # API路由
-│   │   ├── services/       # 业务逻辑
-│   │   ├── models/         # 数据模型
-│   │   └── schemas/        # Pydantic schemas
-│   └── tests/              # 测试
-├── frontend/                # Vue前端
+│   │   ├── api/            # FastAPI 路由
+│   │   │   ├── chat.py     # 聊天 API
+│   │   │   ├── files.py    # 文件上传
+│   │   │   ├── contracts.py # 合同管理
+│   │   │   └── templates.py # 模板管理
+│   │   ├── services/       # 业务逻辑层
+│   │   │   ├── agent_service.py    # AI Agent
+│   │   │   ├── llm_service.py      # LLM 调用
+│   │   │   ├── session_service.py  # 会话管理
+│   │   │   ├── file_service.py     # 文件处理
+│   │   │   ├── contract_service.py # 合同业务
+│   │   │   └── template_service.py # 模板业务
+│   │   ├── models/         # SQLModel 数据模型
+│   │   ├── schemas/        # Pydantic schemas
+│   │   ├── config.py       # 配置管理
+│   │   └── main.py         # 应用入口
+│   └── tests/              # 测试文件
+├── frontend/                # Vue 3 前端
 │   ├── src/
-│   │   ├── components/     # Vue组件
-│   │   ├── stores/         # Pinia状态管理
-│   │   ├── views/          # 页面视图
-│   │   └── api/            # API客户端
+│   │   ├── views/
+│   │   │   └── ContractWorkspace.vue  # 主界面
+│   │   ├── stores/         # Pinia 状态管理
+│   │   │   ├── chat.ts     # 聊天状态
+│   │   │   └── contract.ts # 合同状态
+│   │   ├── api/
+│   │   │   └── client.ts   # API 客户端
+│   │   ├── types/          # TypeScript 类型
+│   │   └── main.ts         # 入口文件
 │   └── ...
-├── docs/                    # 文档
-│   └── superpowers/
-│       ├── specs/          # 设计文档
-│       └── plans/          # 实施计划
-└── ...
+├── sessions/                # 会话数据（JSONL）
+├── uploads/                 # 上传文件存储
+├── config.example.toml      # 配置示例
+├── start.py                 # 启动脚本
+└── pyproject.toml           # Python 项目配置
 ```
 
-## 开发
+## 开发指南
 
 ### 后端开发
 
@@ -124,7 +149,13 @@ cuhksz_demo/
 uv pip install -e ".[dev]"
 
 # 运行测试
-uv run pytest
+pytest
+
+# 代码格式化
+black .
+
+# 代码检查
+ruff check .
 ```
 
 ### 前端开发
@@ -137,6 +168,37 @@ npm run build
 npm run preview
 ```
 
-## License
+## 主要功能
+
+### 1. 文件上传与管理
+- 支持 `.doc` 和 `.docx` 格式
+- 拖放上传，实时解析
+- 多文件管理
+- 文件预览（支持缩放）
+
+### 2. 智能对话
+- 基于上下文的连续对话
+- 文件内容智能分析
+- 风险审查和建议
+- 流程引导
+
+### 3. 会话管理
+- 会话持久化（JSONL 格式）
+- 历史记录保留
+- 多会话切换
+
+## 技术亮点
+
+- **LiteLLM 集成**：支持多种 LLM 提供商
+- **JSONL 存储**：轻量级会话持久化
+- **Vue Office**：专业文档预览
+- **TypeScript**：完整类型安全
+- **Pinia**：响应式状态管理
+
+## 许可证
 
 MIT
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！

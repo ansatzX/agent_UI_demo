@@ -237,3 +237,40 @@ class LLMService:
             pass
 
         return {"summary": "无法解析审查结果", "issues": []}
+
+    async def generate_react_response(
+        self,
+        system_prompt: str,
+        conversation: List[Dict],
+        tools: List[Dict]
+    ) -> Dict[str, Any]:
+        """生成 ReAct 响应（原生 function calling）"""
+        messages = [{"role": "system", "content": system_prompt}]
+        messages.extend(conversation)
+
+        params = self._get_litellm_params(
+            messages=messages,
+            max_tokens=1024
+        )
+
+        # 添加工具定义（tools 已经是 OpenAI 格式）
+        params["tools"] = tools
+        params["tool_choice"] = "auto"
+
+        response = await acompletion(**params)
+        message = response.choices[0].message
+
+        # 返回 content + tool_calls 结构
+        tool_calls = []
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            for tc in message.tool_calls:
+                tool_calls.append({
+                    "id": tc.id,
+                    "name": tc.function.name,
+                    "arguments": json.loads(tc.function.arguments or "{}")
+                })
+
+        return {
+            "content": message.content or "",
+            "tool_calls": tool_calls
+        }

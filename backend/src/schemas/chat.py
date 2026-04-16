@@ -37,6 +37,13 @@ class ChatResponse(BaseModel):
     session_id: Optional[str] = None
     token_usage: Optional[TokenUsage] = None
     response_time: Optional[float] = None  # 响应时间（秒）
+    tool_results: Optional[List[Dict[str, Any]]] = None
+
+
+class SubmitFormRequest(BaseModel):
+    form_id: str
+    values: Dict[str, Any]
+    session_id: str
 
 
 class MessageResponse(BaseModel):

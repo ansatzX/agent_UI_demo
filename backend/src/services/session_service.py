@@ -32,7 +32,9 @@ class SessionService:
         role: str,
         content: str,
         options: Optional[List[Dict]] = None,
-        uploaded_file: Optional[Dict[str, Any]] = None
+        uploaded_file: Optional[Dict[str, Any]] = None,
+        form_values: Optional[Dict[str, Any]] = None,
+        tool_results: Optional[List[Dict]] = None
     ) -> Dict[str, Any]:
         """添加消息到会话"""
         message = {
@@ -45,6 +47,12 @@ class SessionService:
         # 如果有文件信息，添加到消息中
         if uploaded_file:
             message["uploaded_file"] = uploaded_file
+
+        if form_values:
+            message["form_values"] = form_values
+
+        if tool_results:
+            message["tool_results"] = tool_results
 
         session_file = self._get_session_file(session_id)
         with open(session_file, "a", encoding="utf-8") as f:
@@ -155,7 +163,14 @@ class SessionService:
                     "message_count": len(messages),
                     "has_file": len(uploaded_files) > 0,
                     "file_count": len(uploaded_files),
-                    "file_names": [f.get("original_filename") for f in uploaded_files]
+                    "file_names": [f.get("original_filename") for f in uploaded_files],  # 兼容旧前端
+                    "files": [
+                        {
+                            "display_name": f.get("original_filename"),
+                            "stored_filename": f.get("filename")
+                        }
+                        for f in uploaded_files
+                    ]
                 })
 
         return sessions

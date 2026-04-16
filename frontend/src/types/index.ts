@@ -6,18 +6,66 @@ export interface Option {
   payload?: Record<string, any>
 }
 
-export interface Message {
+export interface BaseMessage {
   id?: number
-  role: 'user' | 'assistant'
-  content: string
-  options?: Option[]
   timestamp?: string
+}
+
+export interface UserMessage extends BaseMessage {
+  role: 'user'
+  content: string
   uploaded_file?: {
     filename: string
     original_filename?: string
     size?: number
     content?: any
   }
+}
+
+export interface AssistantMessage extends BaseMessage {
+  role: 'assistant'
+  content: string
+  options?: Option[]
+  tool_results?: ToolResult[]
+}
+
+export interface FormSubmissionMessage extends BaseMessage {
+  role: 'user'
+  type: 'form_submission'
+  content: string
+  form_values: Record<string, any>
+}
+
+export interface ToolResultMessage extends BaseMessage {
+  role: 'assistant'
+  type: 'tool_result'
+  tool: string
+  result: any
+}
+
+export type Message = UserMessage | AssistantMessage | FormSubmissionMessage | ToolResultMessage
+
+export interface ToolResult {
+  tool_call_id?: string
+  tool_name?: string
+  success?: boolean
+  type?: string            // 'form' | ...
+  form_id?: string
+  title?: string
+  fields?: FormField[]
+  output?: any
+  error?: string
+  [k: string]: any
+}
+
+export interface FormField {
+  name: string
+  label: string
+  type: 'text' | 'number' | 'date' | 'select' | 'textarea'
+  required?: boolean
+  options?: string[]
+  default?: string
+  placeholder?: string
 }
 
 export interface ContractField {

@@ -12,6 +12,7 @@ const api = axios.create({
 
 export interface FileUploadResponse {
   filename: string
+  unique_filename: string
   size: number
   parsed: {
     success: boolean
@@ -20,6 +21,7 @@ export interface FileUploadResponse {
     full_text: string
     error?: string
   }
+  session_id?: string
 }
 
 export interface TokenUsage {
@@ -46,6 +48,13 @@ export interface ChatResponse {
   session_id?: string
   token_usage?: TokenUsage
   response_time?: number
+  tool_results?: any[]
+}
+
+export interface FormSubmitRequest {
+  form_id: string
+  values: Record<string, any>
+  session_id: string
 }
 
 export interface ContractFillRequest {
@@ -63,7 +72,10 @@ export const chatApi = {
     api.get('/chat/sessions').then(r => r.data),
 
   deleteSession: (sessionId: string): Promise<void> =>
-    api.delete(`/chat/sessions/${sessionId}`).then(r => r.data)
+    api.delete(`/chat/sessions/${sessionId}`).then(r => r.data),
+
+  submitForm: (data: FormSubmitRequest): Promise<ChatResponse> =>
+    api.post('/chat/submit-form', data).then(r => r.data)
 }
 
 export const templateApi = {

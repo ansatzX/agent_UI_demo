@@ -11,17 +11,17 @@ database_url = "sqlite:///./contracts.db"
 default_model = "deepseek/deepseek-chat"
 
 [providers]
-# DeepSeek配置 (推荐)
+# DeepSeek配置
 [providers.deepseek]
 api_key = "your_deepseek_api_key_here"
 api_base = "https://api.deepseek.com"
 
-# 火山引擎Coding Plan配置 (推荐国内使用)
+# 火山引擎配置
 [providers.volcengine]
 api_key = "your_volc_api_key_here"
 api_base = "https://ark.cn-beijing.volces.com/api/v3"
 
-# 火山引擎Coding Plan (coding endpoint)
+# 火山引擎Coding Plan
 [providers.volcengine_coding_plan]
 api_key = "your_volc_api_key_here"
 api_base = "https://ark.cn-beijing.volces.com/api/coding/v3"

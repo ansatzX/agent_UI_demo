@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from ..services.file_service import FileService
 from ..services.session_service import SessionService
@@ -13,15 +13,16 @@ MAX_FILE_SIZE = 200 * 1024 * 1024
 
 @router.post("/upload")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     session_id: Optional[str] = Query(None)
 ):
     """上传文件并关联到会话"""
-    # 检查文件格式
-    if not file.filename.endswith(('.doc', '.docx')):
-        raise HTTPException(status_code=400, detail="只支持 .doc 和 .docx 格式的文件")
+    # 检查文件格式（只允许 .docx）
+    if not file.filename.endswith('.docx'):
+        raise HTTPException(status_code=400, detail="仅支持 .docx 格式的文件")
 
-    file_service = FileService()
+    file_service = request.app.state.file_service
     session_service = SessionService()
 
     # 读取文件内容
@@ -37,11 +38,15 @@ async def upload_file(
     # 保存文件（使用唯一文件名）
     file_path, unique_filename = file_service.save_upload_file(content, file.filename)
 
-    # 解析文件
-    parsed = file_service.parse_docx(file_path)
+    # 使用 python-docx 解析文件
+    parsed = await file_service.process_uploaded_file(file_path, unique_filename)
 
-    # 如果提供了session_id，关联文件到会话
-    if session_id and parsed["success"]:
+    # 如果解析成功，关联文件到会话
+    if parsed["success"]:
+        # 如果没有提供 session_id，自动创建
+        if not session_id:
+            session_id = session_service.create_session()
+
         session_service.add_session_file(
             session_id,
             unique_filename,  # 唯一文件名
@@ -56,21 +61,22 @@ async def upload_file(
         "filename": file.filename,  # 返回原始文件名用于显示
         "unique_filename": unique_filename,  # 返回唯一文件名用于下载
         "size": len(content),
-        "parsed": parsed
+        "parsed": parsed,
+        "session_id": session_id  # 返回 session_id（可能是新创建的）
     }
 
 
 @router.get("/list")
-async def list_files():
+async def list_files(request: Request):
     """列出所有上传的文件"""
-    file_service = FileService()
+    file_service = request.app.state.file_service
     return file_service.list_uploaded_files()
 
 
 @router.get("/preview/{filename}")
-async def preview_file(filename: str):
+async def preview_file(filename: str, request: Request):
     """预览文件内容"""
-    file_service = FileService()
+    file_service = request.app.state.file_service
     file_info = file_service.get_file_info(filename)
 
     if not file_info:
@@ -80,9 +86,9 @@ async def preview_file(filename: str):
 
 
 @router.get("/download/{filename}")
-async def download_file(filename: str):
+async def download_file(filename: str, request: Request):
     """下载文件"""
-    file_service = FileService()
+    file_service = request.app.state.file_service
     file_path = file_service.uploads_dir / filename
 
     if not file_path.exists():
@@ -96,9 +102,9 @@ async def download_file(filename: str):
 
 
 @router.get("/preview-docx/{filename}")
-async def preview_docx(filename: str):
+async def preview_docx(filename: str, request: Request):
     """预览docx文件（返回文件内容供前端组件使用）"""
-    file_service = FileService()
+    file_service = request.app.state.file_service
     file_path = file_service.uploads_dir / filename
 
     if not file_path.exists():
@@ -111,9 +117,9 @@ async def preview_docx(filename: str):
 
 
 @router.delete("/{filename}")
-async def delete_file(filename: str):
+async def delete_file(filename: str, request: Request):
     """删除文件"""
-    file_service = FileService()
+    file_service = request.app.state.file_service
     file_path = file_service.uploads_dir / filename
 
     if not file_path.exists():

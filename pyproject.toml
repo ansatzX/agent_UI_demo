@@ -1,20 +1,37 @@
 [project]
 name = "contract-agent"
 version = "0.1.0"
-description = "企业技术合同智能助手"
+description = "企业合同智能助手 - 基于 AI 的合同管理和审查系统"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+readme = "README.md"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["contract", "ai", "llm", "fastapi", "vue"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
 dependencies = [
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.29.0",
     "sqlmodel>=0.0.16",
-    "python-docx>=1.1.0",
-    "docxtpl>=0.16.0",
+    # "python-docx>=1.1.0",  # 移除，使用 MCP
+    "docxtpl>=0.16.0",  # 保留用于文档生成
     "litellm>=1.40.0",
     "python-multipart>=0.0.9",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.2.0",
     "python-dotenv>=1.0.0",
     "tomlkit>=0.12.0",
+    "mcp>=1.0.0",  # 新增 MCP SDK
 ]
 
 [project.optional-dependencies]
@@ -25,3 +42,27 @@ dev = [
     "black>=24.0.0",
     "ruff>=0.3.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/contract-agent"
+Repository = "https://github.com/yourusername/contract-agent"
+Documentation = "https://github.com/yourusername/contract-agent#readme"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend/src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["backend/tests"]

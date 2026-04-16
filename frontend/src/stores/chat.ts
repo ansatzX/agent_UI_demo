@@ -24,7 +24,12 @@ export const useChatStore = defineStore('chat', () => {
         role: msg.role,
         content: msg.content,
         options: msg.options,
-        uploaded_file: msg.uploaded_file
+        uploaded_file: msg.uploaded_file,
+        tool_results: msg.tool_results,
+        type: msg.type,
+        form_values: msg.form_values,
+        tool: msg.tool,
+        result: msg.result
       }))
       currentSessionId.value = sessionId
     } catch (error) {
@@ -59,12 +64,19 @@ export const useChatStore = defineStore('chat', () => {
         uploaded_file: fileInfo
       })
 
-      // 添加AI响应消息
+      // 添加AI响应消息（包含 tool_results）
       addMessage({
         role: 'assistant',
         content: response.message,
-        options: response.options
+        options: response.options,
+        tool_results: response.tool_results
       })
+
+      // 如果上传文件返回了 session_id，更新当前 session
+      if (fileInfo?.session_id) {
+        currentSessionId.value = fileInfo.session_id
+        localStorage.setItem('currentSessionId', fileInfo.session_id)
+      }
 
       if (response.session_id) {
         currentSessionId.value = response.session_id
@@ -111,6 +123,54 @@ export const useChatStore = defineStore('chat', () => {
     await sendMessage(option.label, option.id)
   }
 
+  const submitForm = async (formId: string, values: Record<string, any>) => {
+    // 添加用户消息（显示已填写的表单）
+    addMessage({
+      role: 'user',
+      type: 'form_submission',
+      content: `提交表单`,
+      form_values: values
+    })
+
+    // 发送到后端
+    const response = await chatApi.submitForm({
+      form_id: formId,
+      values: values,
+      session_id: currentSessionId.value!
+    })
+
+    // 添加 Agent 响应（包含 tool_results）
+    addMessage({
+      role: 'assistant',
+      content: response.message,
+      options: response.options,
+      tool_results: response.tool_results
+    })
+
+    // 处理工具结果
+    if (response.tool_results) {
+      for (const result of response.tool_results) {
+        if (result.type === 'form') {
+          // 如果又返回了表单，添加表单消息
+          addMessage({
+            role: 'assistant',
+            type: 'tool_result',
+            tool: 'show_form',
+            result: result
+          })
+        } else if (result.tool_name === 'generate_document') {
+          // 添加生成的文件消息
+          addMessage({
+            role: 'assistant',
+            type: 'tool_result',
+            tool: 'generate_document',
+            result: result
+          })
+        }
+      }
+    }
+  }
+
   const clearChat = () => {
     messages.value = []
     currentSessionId.value = null
@@ -154,6 +214,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     cancelRequest,
     selectOption,
+    submitForm,
     clearChat,
     deleteSession,
     initSession

@@ -33,7 +33,11 @@
                 </span>
                 <button
                   v-if="session.file_names && session.file_names.length === 1"
-                  @click.stop="downloadSessionFile(session.file_names[0])"
+                  @click.stop="downloadSessionFile(
+                    session.files && session.files[0]
+                      ? session.files[0].stored_filename
+                      : session.file_names[0]
+                  )"
                   class="download-link"
                   title="下载文件"
                 >
@@ -61,7 +65,7 @@
           <div class="drag-content">
             <div class="drag-icon">📁</div>
             <p>拖放文件到此处上传</p>
-            <p class="drag-hint">支持 .doc 和 .docx 格式，最大 200MB</p>
+            <p class="drag-hint">仅支持 .docx 格式，最大 200MB</p>
           </div>
         </div>
 
@@ -73,10 +77,12 @@
         >
           <div v-for="(msg, idx) in chatStore.messages" :key="idx" :class="['message', msg.role]">
             <div class="bubble">
-              {{ msg.content }}
+              <template v-if="'content' in msg">
+                {{ msg.content }}
+              </template>
               <!-- 在用户消息后显示文件快捷链接 -->
               <div
-                v-if="msg.role === 'user' && msg.uploaded_file"
+                v-if="msg.role === 'user' && 'uploaded_file' in msg && msg.uploaded_file"
                 class="message-file-link"
               >
                 <button
@@ -86,6 +92,39 @@
                 >
                   📎 {{ msg.uploaded_file.original_filename || msg.uploaded_file.filename }}
                 </button>
+              </div>
+              <!-- 在 assistant 消息后显示工具结果（表单） -->
+              <div
+                v-if="msg.role === 'assistant' && 'tool_results' in msg && msg.tool_results"
+                class="tool-results"
+              >
+                <template v-for="(tr, trIdx) in msg.tool_results" :key="trIdx">
+                  <DynamicForm
+                    v-if="tr.output && tr.output.type === 'form' && tr.output.form_id"
+                    :form-def="{
+                      type: 'form',
+                      form_id: tr.output.form_id,
+                      title: tr.output.title || '填写表单',
+                      fields: tr.output.fields || []
+                    }"
+                    @submit="(values) => chatStore.submitForm(tr.output.form_id, values)"
+                  />
+                  <a
+                    v-else-if="tr.tool_name === 'generate_document' && tr.success && tr.output && tr.output.download_url"
+                    :href="tr.output.download_url"
+                    :download="tr.output.display_name || tr.output.filename"
+                    class="download-doc-btn"
+                  >
+                    ⬇️ 下载 {{ tr.output.display_name || tr.output.filename }}
+                  </a>
+                  <button
+                    v-if="tr.tool_name === 'generate_document' && tr.success && tr.output && tr.output.filename"
+                    @click="previewGeneratedDoc(tr.output.filename)"
+                    class="preview-doc-btn"
+                  >
+                    👁️ 预览
+                  </button>
+                </template>
               </div>
             </div>
           </div>
@@ -224,6 +263,7 @@
 import { ref, onMounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useContractStore } from '@/stores/contract'
+import DynamicForm from '@/components/DynamicForm.vue'
 import axios from 'axios'
 import VueOfficeDocx from '@vue-office/docx'
 import '@vue-office/docx/lib/index.css'
@@ -336,6 +376,16 @@ const showFile = (fileData: any) => {
     parsed: fileData.content
   }
   // 重置缩放级别
+  zoomLevel.value = 100
+}
+
+const previewGeneratedDoc = (filename: string) => {
+  uploadedFile.value = {
+    filename,
+    unique_filename: filename,
+    size: 0,
+    parsed: null
+  }
   zoomLevel.value = 100
 }
 
@@ -730,6 +780,46 @@ onMounted(async () => {
 .file-link-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.download-doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #10b981;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.download-doc-btn:hover {
+  background: #059669;
+}
+
+.preview-doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  margin-left: 8px;
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.preview-doc-btn:hover {
+  background: #2563eb;
 }
 
 .loading-container {

@@ -1,29 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session
-from ..database import get_session
-from ..schemas.chat import ChatRequest, ChatResponse, MessageResponse
-from ..services.agent_service import AgentService
-from ..services.llm_service import LLMService
-from ..services.contract_service import ContractService
-from ..services.template_service import TemplateService
+from fastapi import APIRouter, HTTPException, Request
+from ..schemas.chat import ChatRequest, ChatResponse, MessageResponse, SubmitFormRequest
 from ..services.session_service import SessionService
 from typing import List
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-def get_agent_service(session: Session = Depends(get_session)) -> AgentService:
-    llm = LLMService()
-    contract = ContractService(session, llm)
-    template = TemplateService(session, llm)
-    return AgentService(session, llm, contract, template)
-
-
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    agent_service: AgentService = Depends(get_agent_service)
+    req: Request
 ):
+    # 从 app.state 获取已初始化的 AgentService
+    agent_service = req.app.state.agent_service
+
     # 转换文件信息为dict
     uploaded_file_dict = None
     if request.uploaded_file:
@@ -78,3 +68,19 @@ async def get_session_file(session_id: str):
         "content": uploaded_file.get("content"),
         "uploaded_at": uploaded_file.get("uploaded_at")
     }
+
+
+@router.post("/submit-form", response_model=ChatResponse)
+async def submit_form(
+    request: SubmitFormRequest,
+    req: Request
+):
+    """处理表单提交"""
+    agent_service = req.app.state.agent_service
+
+    result = await agent_service.handle_form_submission(
+        request.form_id,
+        request.values,
+        request.session_id
+    )
+    return ChatResponse(**result)
