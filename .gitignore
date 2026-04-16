@@ -1,0 +1,28 @@
+docs/
+.env
+config.toml
+*.db
+__pycache__/
+*.pyc
+
+# 会话数据
+sessions/
+
+# 前端构建产物
+frontend/dist/
+frontend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志
+*.log
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
