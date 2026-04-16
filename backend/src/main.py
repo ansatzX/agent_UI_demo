@@ -25,6 +25,8 @@ from .services.tool_registry import ToolRegistry
 from .services.tools.read_file import ReadFileTool
 from .services.tools.generate_document import GenerateDocumentTool
 from .services.tools.show_form import ShowFormTool
+from .services.tools.read_webpage import ReadWebpageTool
+from .services.tools.write_article import WriteArticleTool
 from .services.doc_generator import DocGenerator
 from .services.llm_service import LLMService
 from .services.agent_service import AgentService
@@ -55,6 +57,8 @@ async def lifespan(app: FastAPI):
     tool_registry.register(ReadFileTool())
     tool_registry.register(GenerateDocumentTool(doc_generator, uploads_dir))
     tool_registry.register(ShowFormTool())
+    tool_registry.register(ReadWebpageTool())
+    tool_registry.register(WriteArticleTool())
 
     app.state.tool_registry = tool_registry
 

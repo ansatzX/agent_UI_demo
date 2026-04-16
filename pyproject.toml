@@ -23,15 +23,16 @@ dependencies = [
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.29.0",
     "sqlmodel>=0.0.16",
-    # "python-docx>=1.1.0",  # 移除，使用 MCP
-    "docxtpl>=0.16.0",  # 保留用于文档生成
+    "python-docx>=1.1.0",
+    "docxtpl>=0.16.0",
     "litellm>=1.40.0",
     "python-multipart>=0.0.9",
     "pydantic>=2.6.0",
     "pydantic-settings>=2.2.0",
     "python-dotenv>=1.0.0",
     "tomlkit>=0.12.0",
-    "mcp>=1.0.0",  # 新增 MCP SDK
+    "httpx>=0.27.0",
+    "beautifulsoup4>=4.12.0",
 ]
 
 [project.optional-dependencies]

@@ -1,14 +1,32 @@
 # 企业合同智能助手
 
-智能合同生成系统：上传模板 → AI 识别占位符 → 动态表单填充 → 一键生成合同
+智能合同生成 + 智能写作双引擎系统
 
 ## ✨ 核心功能
 
-- **🎯 智能合同生成** - 上传 Word 模板，AI 自动识别 `{{占位符}}`，弹出动态表单，填写后生成合同
-- **📄 文档实时预览** - 拖放上传 .docx 文档，右侧即时预览，支持缩放、下载、多文件管理
-- **🤖 AI 智能对话** - 基于上下文的连续对话，记忆上传文件和表单数据，工具调用（show_form、generate_document）
-- **💾 会话持久化** - JSONL 格式存储，刷新页面不丢失历史对话和文件
-- **🎨 动态表单 (A2UI)** - 根据模板占位符自动生成表单界面，支持文本、数字、日期等多种字段类型
+### 🎯 场景一：智能合同生成
+
+**完整流程**：上传模板 → AI 识别占位符 → 动态表单填充 → 一键生成合同 → 主动引导下一步
+
+- **智能识别** - 上传 Word 模板，AI 自动识别 `{{占位符}}` 并生成动态表单
+- **一键生成** - 填写表单后自动生成合同文档，支持预览和下载
+- **主动引导** - 完成后主动询问："您是否需要了解合同审批流程？是否需要我为您填充合同？"
+- **流程解释** - 提供合同审批、签署、立项、资金到账等流程的智能解释
+
+### 📝 场景二：智能写作助手
+
+**完整流程**：收集素材 → 调用写作工具 → 生成文章 → 支持多种输出格式
+
+- **多源素材** - 支持用户上传文档、提供 URL（自动爬取网页）、直接输入信息
+- **写作类型** - 项目总结报告、产研合作新闻稿、公众号推文、通用文章
+- **风格定制** - 正式、轻松、学术、活泼四种风格可选
+- **多格式输出** - Markdown 文章、纯文本、幻灯片大纲（Slide Outline）
+
+### 📄 文档管理与预览
+
+- **实时预览** - 拖放上传 .docx 文档，右侧即时预览，支持缩放（50%-200%）
+- **多文件管理** - 同一会话支持多个文件上传和管理
+- **会话持久化** - JSONL 格式存储，刷新页面不丢失历史对话和文件
 
 ## 🏗️ 技术架构
 
@@ -29,6 +47,8 @@
 - **show_form** - 向用户显示动态表单，收集占位符字段
 - **generate_document** - 基于模板和表单数据生成合同文档
 - **read_file** - 读取文件内容（可选）
+- **read_webpage** - 爬取网页内容，提取文本用于写作素材
+- **write_article** - 根据主题和素材生成文章、报告、新闻稿等
 
 ## 🚀 一键安装与启动
 
@@ -84,13 +104,130 @@ chmod +x start.sh
 
 ## 📖 使用指南
 
-### 智能合同生成流程
+### 场景一：智能合同生成
+
+#### 流程步骤
 
 1. **上传模板** - 在左侧聊天区拖放 Word 模板文件（`.docx` 格式）
-2. **触发识别** - 发送消息如"帮我填写这份模板"或"生成合同"
-3. **填写表单** - AI 识别占位符后，会弹出动态表单（如 `{{甲方}}`、`{{乙方}}`、`{{合同编号}}`）
-4. **生成合同** - 填写表单并提交，AI 自动生成填充完成的合同文档
-5. **预览下载** - 点击 **👁️ 预览** 按钮在右侧查看，或点击 **⬇️ 下载** 按钮下载文件
+2. **触发识别** - 发送消息如"我要与企业签订技术合同"或"帮我填写这份模板"
+3. **填写表单** - AI 识别占位符后，弹出动态表单（如 `{{甲方}}`、`{{乙方}}`、`{{合同编号}}`）
+4. **生成合同** - 填写表单并提交，AI 自动生成合同文档
+5. **预览下载** - 点击 **👁️ 预览** 在右侧查看，或点击 **⬇️ 下载** 下载文件
+6. **主动引导** - AI 会主动询问："您是否需要了解合同审批流程？是否需要合同签署、立项、资金到账等流程解释？"
+
+#### 示例对话
+
+```
+用户：我要与企业签订技术合同
+AI：好的，我为您提供技术合同模板。请上传您的合同模板文件，或使用我们的标准模板。
+[AI 提供"上传模板"和"选择模板"选项]
+
+用户：[上传模板]
+AI：我已识别到模板中的占位符，请填写以下信息：
+[动态表单：甲方、乙方、合同编号、签订日期等]
+
+用户：[填写并提交表单]
+AI：合同已生成完成！点击下方按钮下载。
+[下载/预览按钮]
+AI：您是否需要了解合同审批流程？是否需要我为您解释合同签署、立项、资金到账等后续步骤？
+```
+
+### 场景二：智能写作助手
+
+#### 流程步骤
+
+1. **描述需求** - 告诉 AI 你要写什么类型的文章
+2. **提供素材** - 上传文档、提供 URL 或直接输入信息
+3. **选择风格** - 正式/轻松/学术/活泼
+4. **生成文章** - AI 根据素材和风格生成文章
+5. **多格式输出** - Markdown/纯文本/幻灯片大纲
+
+#### 示例对话
+
+**示例 1：产研合作新闻稿**
+
+```
+用户：我要写一个关于我们公司与XX大学产研合作的新闻稿，这是我们活动的介绍：
+      XX公司与XX大学于2024年4月15日签署了产学研合作协议，共同开展人工智能领域的研究...
+
+AI：好的，我来为您撰写产研合作新闻稿。您希望采用什么风格？
+[选项：正式、轻松、学术、活泼]
+
+用户：正式风格
+AI：调用工具生成新闻稿...
+
+# XX公司与XX大学签署产学研合作协议，共启AI研究新篇章
+
+**导语**：2024年4月15日，XX公司与XX大学在XX大学学术报告厅正式签署产学研合作协议...
+
+**主体内容**：双方将围绕人工智能、大数据等领域开展深度合作...
+
+[完整新闻稿内容]
+```
+
+**Example 2: Academic Profile (from webpage source)**
+
+```
+User: Help me write an academic profile introduction based on this webpage: https://ansatz.work/
+
+AI: Let me fetch the webpage content first...
+[Calling read_webpage tool]
+Fetched webpage content (Title: README, Word count: ~2000 words)
+
+Now generating academic profile in academic style:
+
+# Cunxi Gong (ansatz) - Academic Profile
+
+## Background
+Cunxi Gong is a PhD student in Physics at The Chinese University of Hong Kong, Shenzhen, under the supervision of Prof. Weitang Li. His research explores the intersection of Quantum Computing, Tensor Networks, and Machine Learning.
+
+## Research Interests
+- Quantum Computing
+- Tensor Networks
+- Machine Learning
+- Computational Chemistry
+
+## Education
+- PhD Student in Physics, The Chinese University of Hong Kong, Shenzhen
+
+## Contact
+- Email: ansatzMe@outlook.com
+
+[Full academic profile content]
+```
+
+**示例 3：幻灯片大纲**
+
+```
+用户：帮我写一个公众号推文，主题是"大学生创新创业大赛"，要求活泼风格，并生成幻灯片大纲
+
+AI：好的，我来为您撰写公众号推文和幻灯片大纲。
+
+# 🎉 大学生创新创业大赛：点燃梦想，创造未来！
+
+[公众号推文内容...]
+
+---
+
+# 幻灯片大纲
+
+## Slide 1: 大赛背景
+- 创新创业教育的重要性
+- 历届大赛成果回顾
+- 本届大赛亮点
+
+## Slide 2: 参赛要求
+- 参赛对象：全日制在校大学生
+- 团队规模：3-5人
+- 项目要求：创新性、可行性、市场前景
+
+## Slide 3: 赛程安排
+- 报名阶段：2024年3-4月
+- 初赛阶段：2024年5月
+- 决赛阶段：2024年6月
+
+...
+```
 
 ### 文件管理
 
@@ -125,7 +262,9 @@ cuhksz_demo/
 │   │   │   ├── doc_generator.py       # 文档生成（fill_template_simple）
 │   │   │   └── tools/                 # 工具系统
 │   │   │       ├── show_form.py       # 动态表单工具
-│   │   │       └── generate_document.py # 文档生成工具
+│   │   │       ├── generate_document.py # 文档生成工具
+│   │   │       ├── read_webpage.py    # 网页爬取工具
+│   │   │       └── write_article.py   # 智能写作工具
 │   │   ├── models/            # SQLModel 数据模型
 │   │   ├── schemas/           # Pydantic schemas
 │   │   └── main.py            # 应用入口（lifespan 初始化）
@@ -197,7 +336,16 @@ npm run preview
 
 ## 🎯 核心工作流
 
-### 1. 上传模板 → AI 识别占位符
+### 场景一：智能合同生成
+
+#### 1. 意图识别与模板提供
+
+```
+用户：我要与企业签订技术合同
+AI：识别意图 → 提供"上传模板"和"选择模板"选项
+```
+
+#### 2. 上传模板 → AI 识别占位符
 
 ```
 用户：拖放 "合同模板.docx"（包含 {{甲方}}、{{乙方}}、{{合同编号}}）
@@ -205,7 +353,7 @@ AI：识别到合同模板，调用 show_form 工具
 前端：渲染动态表单
 ```
 
-### 2. 填写表单 → 生成合同
+#### 3. 填写表单 → 生成合同
 
 ```
 用户：填写表单字段（甲方="ABC公司"，乙方="XYZ公司"，合同编号="2024-001"）
@@ -214,14 +362,56 @@ AI：接收表单数据，调用 generate_document 工具
 前端：显示下载/预览按钮
 ```
 
-### 3. 预览/下载生成的合同
+#### 4. 主动引导下一步
 
 ```
-用户：点击 "👁️ 预览" 按钮
-前端：右侧文档预览区渲染生成的 .docx 文件
-用户：点击 "⬇️ 下载" 按钮
-浏览器：下载文件（友好名："合同.docx"）
+AI：合同已生成完成！
+    您是否需要了解合同审批流程？
+    是否需要我为您解释合同签署、立项、资金到账等后续步骤？
+    是否需要其他合同相关的帮助？
 ```
+
+### 场景二：智能写作助手
+
+#### 1. Collect Source Material
+
+```
+User: Help me write an academic profile based on this webpage: https://ansatz.work/
+AI: Calling read_webpage tool to fetch webpage content
+    Fetched 2000 words of content
+```
+
+#### 2. Call Writing Tool
+
+```
+AI: Calling write_article tool
+    article_type: "general"
+    topic: "Academic Profile"
+    style: "academic"
+    source_material: <webpage content>
+    output_format: "markdown"
+```
+
+#### 3. Generate Article
+
+```
+AI: Generating complete article based on structure template and style guide
+    - Background
+    - Research Interests
+    - Education
+    - Contact Information
+```
+
+#### 4. Multiple Output Formats
+
+```
+User: Can you also generate a slide outline?
+AI: Re-calling write_article with output_format="slide_outline"
+    Generating:
+    # Slide 1: Background
+    - Key point 1
+    - Key point 2
+    ...
 
 ## 🔍 技术亮点
 

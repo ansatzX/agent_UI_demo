@@ -78,7 +78,7 @@
           <div v-for="(msg, idx) in chatStore.messages" :key="idx" :class="['message', msg.role]">
             <div class="bubble">
               <template v-if="'content' in msg">
-                {{ msg.content }}
+                <div class="message-content" v-html="renderMarkdown(msg.content)"></div>
               </template>
               <!-- 在用户消息后显示文件快捷链接 -->
               <div
@@ -267,6 +267,23 @@ import DynamicForm from '@/components/DynamicForm.vue'
 import axios from 'axios'
 import VueOfficeDocx from '@vue-office/docx'
 import '@vue-office/docx/lib/index.css'
+import { marked } from 'marked'
+
+// Configure marked for safe rendering
+marked.setOptions({
+  breaks: true, // Convert line breaks to <br>
+  gfm: true // GitHub Flavored Markdown
+})
+
+const renderMarkdown = (text: string) => {
+  if (!text) return ''
+  try {
+    return marked.parse(text) as string
+  } catch (e) {
+    console.error('Markdown parse error:', e)
+    return text
+  }
+}
 
 const chatStore = useChatStore()
 const contractStore = useContractStore()
@@ -780,6 +797,88 @@ onMounted(async () => {
 .file-link-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.message-content {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.message-content h1,
+.message-content h2,
+.message-content h3 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.message-content h1 { font-size: 1.5em; }
+.message-content h2 { font-size: 1.3em; }
+.message-content h3 { font-size: 1.1em; }
+
+.message-content p {
+  margin: 8px 0;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.message-content li {
+  margin: 4px 0;
+}
+
+.message-content code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.message-content pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.message-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.message-content a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.message-content a:hover {
+  text-decoration: underline;
+}
+
+.message-content blockquote {
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  padding-left: 12px;
+  margin: 12px 0;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.message-content strong {
+  font-weight: 600;
+}
+
+.message-content em {
+  font-style: italic;
+}
+
+.message-content hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 16px 0;
 }
 
 .download-doc-btn {
