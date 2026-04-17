@@ -110,7 +110,7 @@
                     @submit="(values) => chatStore.submitForm(tr.output.form_id, values)"
                   />
                   <a
-                    v-else-if="tr.tool_name === 'generate_document' && tr.success && tr.output && tr.output.download_url"
+                    v-else-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && tr.output.download_url"
                     :href="tr.output.download_url"
                     :download="tr.output.display_name || tr.output.filename"
                     class="download-doc-btn"
@@ -118,7 +118,7 @@
                     ⬇️ 下载 {{ tr.output.display_name || tr.output.filename }}
                   </a>
                   <button
-                    v-if="tr.tool_name === 'generate_document' && tr.success && tr.output && tr.output.filename"
+                    v-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && tr.output.filename"
                     @click="previewGeneratedDoc(tr.output.filename)"
                     class="preview-doc-btn"
                   >

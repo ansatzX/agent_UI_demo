@@ -1,8 +1,14 @@
-import json
-from pathlib import Path
-from typing import List, Dict, Any, Optional
+import asyncio
 from datetime import datetime
+from datetime import timedelta
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class SessionService:
@@ -10,6 +16,10 @@ class SessionService:
         # 会话存储在项目根目录的sessions目录
         self.sessions_dir = settings.project_root / "sessions"
         self.sessions_dir.mkdir(exist_ok=True)
+        self.session_ttl = timedelta(hours=24)  # 会话有效期24小时
+
+        # 启动后台清理任务
+        asyncio.create_task(self._cleanup_expired_sessions())
 
     def _get_session_file(self, session_id: str) -> Path:
         """获取会话文件路径"""
@@ -34,14 +44,14 @@ class SessionService:
         options: Optional[List[Dict]] = None,
         uploaded_file: Optional[Dict[str, Any]] = None,
         form_values: Optional[Dict[str, Any]] = None,
-        tool_results: Optional[List[Dict]] = None
+        tool_results: Optional[List[Dict]] = None,
     ) -> Dict[str, Any]:
         """添加消息到会话"""
         message = {
             "timestamp": datetime.now().isoformat(),
             "role": role,
             "content": content,
-            "options": options or []
+            "options": options or [],
         }
 
         # 如果有文件信息，添加到消息中
@@ -76,7 +86,9 @@ class SessionService:
 
         return messages
 
-    def add_session_file(self, session_id: str, unique_filename: str, file_data: Dict[str, Any]):
+    def add_session_file(
+        self, session_id: str, unique_filename: str, file_data: Dict[str, Any]
+    ):
         """添加文件到会话（支持多文件）"""
         metadata_file = self._get_session_metadata_file(session_id)
 
@@ -96,7 +108,7 @@ class SessionService:
             "original_filename": original_filename,  # 原始文件名（用于显示）
             "content": content,
             "size": file_data.get("size", 0),
-            "uploaded_at": datetime.now().isoformat()
+            "uploaded_at": datetime.now().isoformat(),
         }
 
         # 添加到文件列表
@@ -148,7 +160,9 @@ class SessionService:
     def list_sessions(self) -> List[Dict[str, Any]]:
         """列出所有会话"""
         sessions = []
-        for session_file in sorted(self.sessions_dir.glob("*.jsonl"), reverse=True):
+        for session_file in sorted(
+            self.sessions_dir.glob("*.jsonl"), reverse=True
+        ):
             session_id = session_file.stem
             messages = self.get_messages(session_id)
 
@@ -156,22 +170,28 @@ class SessionService:
                 # 获取关联的所有文件
                 uploaded_files = self.get_session_files(session_id)
 
-                sessions.append({
-                    "id": session_id,
-                    "created_at": messages[0]["timestamp"],
-                    "last_message": messages[-1]["content"][:50] if messages else "",
-                    "message_count": len(messages),
-                    "has_file": len(uploaded_files) > 0,
-                    "file_count": len(uploaded_files),
-                    "file_names": [f.get("original_filename") for f in uploaded_files],  # 兼容旧前端
-                    "files": [
-                        {
-                            "display_name": f.get("original_filename"),
-                            "stored_filename": f.get("filename")
-                        }
-                        for f in uploaded_files
-                    ]
-                })
+                sessions.append(
+                    {
+                        "id": session_id,
+                        "created_at": messages[0]["timestamp"],
+                        "last_message": (
+                            messages[-1]["content"][:50] if messages else ""
+                        ),
+                        "message_count": len(messages),
+                        "has_file": len(uploaded_files) > 0,
+                        "file_count": len(uploaded_files),
+                        "file_names": [
+                            f.get("original_filename") for f in uploaded_files
+                        ],  # 兼容旧前端
+                        "files": [
+                            {
+                                "display_name": f.get("original_filename"),
+                                "stored_filename": f.get("filename"),
+                            }
+                            for f in uploaded_files
+                        ],
+                    }
+                )
 
         return sessions
 
@@ -194,7 +214,46 @@ class SessionService:
         if session_id:
             session_file = self._get_session_file(session_id)
             if session_file.exists():
-                return session_id
+                # 检查会话是否过期
+                if not self.is_session_expired(session_id):
+                    return session_id
+                else:
+                    logger.info(f"会话已过期，创建新会话: {session_id}")
 
         # 创建新会话
         return self.create_session()
+
+    def is_session_expired(self, session_id: str) -> bool:
+        """检查会话是否过期"""
+        session_file = self._get_session_file(session_id)
+        if not session_file.exists():
+            return True
+
+        mtime = datetime.fromtimestamp(session_file.stat().st_mtime)
+        return (datetime.now() - mtime) > self.session_ttl
+
+    async def _cleanup_expired_sessions(self):
+        """定期清理过期会话"""
+        while True:
+            try:
+                await asyncio.sleep(3600)  # 每小时清理一次
+
+                cutoff_time = datetime.now() - self.session_ttl
+                cleaned_count = 0
+
+                for session_file in self.sessions_dir.glob("*.jsonl"):
+                    try:
+                        mtime = datetime.fromtimestamp(
+                            session_file.stat().st_mtime
+                        )
+                        if mtime < cutoff_time:
+                            session_id = session_file.stem
+                            self.delete_session(session_id)
+                            cleaned_count += 1
+                    except Exception as e:
+                        logger.error(f"清理会话文件失败 {session_file}: {e}")
+
+                if cleaned_count > 0:
+                    logger.info(f"清理了 {cleaned_count} 个过期会话")
+            except Exception as e:
+                logger.error(f"会话清理任务失败: {e}", exc_info=True)

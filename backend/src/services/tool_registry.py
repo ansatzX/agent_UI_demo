@@ -1,10 +1,15 @@
 # backend/src/services/tool_registry.py
 from typing import Dict, List
-from .tools.base import Tool, ToolResult
+
+from .tools.base import Tool
+from .tools.base import ToolResult
+
 
 class ToolNotFoundError(Exception):
     """工具未找到异常"""
+
     pass
+
 
 class ToolRegistry:
     """工具注册和管理"""
@@ -30,12 +35,15 @@ class ToolRegistry:
         result = await tool.execute(**kwargs)
 
         # 检查是否有后置工具（工具链）
-        if tool.follow_up_tool and result.success and not result.requires_user_input:
+        if (
+            tool.follow_up_tool
+            and result.success
+            and not result.requires_user_input
+        ):
             # 自动调用后置工具
             if result.follow_up_input:
                 follow_up_result = await self.execute(
-                    tool.follow_up_tool,
-                    **result.follow_up_input
+                    tool.follow_up_tool, **result.follow_up_input
                 )
                 return follow_up_result
 

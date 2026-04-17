@@ -1,6 +1,8 @@
-from sqlmodel import SQLModel, Field
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from sqlmodel import Field
+from sqlmodel import SQLModel
 
 
 class Template(SQLModel, table=True):
@@ -16,5 +18,6 @@ class Template(SQLModel, table=True):
     def get_field_config(self) -> dict:
         if self.field_config:
             import json
+
             return json.loads(self.field_config)
         return {}

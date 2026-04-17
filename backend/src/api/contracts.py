@@ -1,49 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import HTTPException
 from fastapi.responses import Response
 from sqlmodel import Session
-from typing import List
+
 from ..database import get_session
 from ..models.contract import Contract
-from ..schemas.contract import (
-    ContractCreate, ContractResponse, ContractFillRequest,
-    ContractFillResponse, RiskReviewResponse
-)
+from ..schemas.contract import ContractCreate
+from ..schemas.contract import ContractFillRequest
+from ..schemas.contract import ContractFillResponse
+from ..schemas.contract import ContractResponse
+from ..schemas.contract import RiskReviewResponse
 from ..services.contract_service import ContractService
 from ..services.llm_service import LLMService
 
 router = APIRouter(prefix="/contracts", tags=["contracts"])
 
 
-def get_contract_service(session: Session = Depends(get_session)) -> ContractService:
+def get_contract_service(
+    session: Session = Depends(get_session),
+) -> ContractService:
     return ContractService(session, LLMService())
 
 
 @router.post("", response_model=ContractResponse)
 def create_contract(
     request: ContractCreate,
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     contract = contract_service.create_contract(
-        name=request.name,
-        type=request.type,
-        template_id=request.template_id
+        name=request.name, type=request.type, template_id=request.template_id
     )
     return ContractResponse.model_validate(contract)
 
 
 @router.get("", response_model=List[ContractResponse])
 def list_contracts(
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     contracts = contract_service.list_contracts()
     return [ContractResponse.model_validate(c) for c in contracts]
 
 
 @router.get("/{contract_id}", response_model=ContractResponse)
-def get_contract(
-    contract_id: int,
-    session: Session = Depends(get_session)
-):
+def get_contract(contract_id: int, session: Session = Depends(get_session)):
     contract = session.get(Contract, contract_id)
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
@@ -54,11 +56,10 @@ def get_contract(
 def fill_contract_fields(
     contract_id: int,
     request: ContractFillRequest,
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     contract = contract_service.update_contract_fields(
-        contract_id,
-        request.field_updates
+        contract_id, request.field_updates
     )
     if not contract:
         raise HTTPException(status_code=404, detail="Contract not found")
@@ -68,7 +69,7 @@ def fill_contract_fields(
 @router.post("/{contract_id}/generate")
 def generate_contract(
     contract_id: int,
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     content = contract_service.fill_contract_document(contract_id)
     if not content:
@@ -78,14 +79,16 @@ def generate_contract(
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f"attachment; filename={contract.name}.docx"}
+        headers={
+            "Content-Disposition": f"attachment; filename={contract.name}.docx"
+        },
     )
 
 
 @router.post("/{contract_id}/review", response_model=RiskReviewResponse)
 async def review_contract(
     contract_id: int,
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     result = await contract_service.review_contract(contract_id)
     if not result:
@@ -97,7 +100,7 @@ async def review_contract(
 def update_status(
     contract_id: int,
     status: str,
-    contract_service: ContractService = Depends(get_contract_service)
+    contract_service: ContractService = Depends(get_contract_service),
 ):
     contract = contract_service.update_status(contract_id, status)
     if not contract:

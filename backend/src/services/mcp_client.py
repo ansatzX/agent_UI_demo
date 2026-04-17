@@ -1,21 +1,24 @@
 # backend/src/services/mcp_client.py
 import asyncio
+from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MCPProcessResult:
     """MCP 处理结果"""
+
     output_file: Path
     intermediate_json: Path
     images: list[Path]
     success: bool = True
     error: Optional[str] = None
+
 
 class MCPClient:
     """Local Read MCP 客户端"""
@@ -30,12 +33,17 @@ class MCPClient:
         # 启动 MCP 服务器子进程
         self.process = await asyncio.create_subprocess_exec(
             "uv",
-            "--directory", "./backend/mcp/Local_Read_MCP",
-            "run", "--with", "local_read_mcp",
-            "python", "-m", "local_read_mcp.server",
+            "--directory",
+            "./backend/mcp/Local_Read_MCP",
+            "run",
+            "--with",
+            "local_read_mcp",
+            "python",
+            "-m",
+            "local_read_mcp.server",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
 
         self.reader = self.process.stdout
@@ -49,9 +57,7 @@ class MCPClient:
             self.process = None
 
     async def process_document(
-        self,
-        file_path: Path,
-        output_dir: Path
+        self, file_path: Path, output_dir: Path
     ) -> MCPProcessResult:
         """处理文档
 
@@ -70,7 +76,7 @@ class MCPClient:
                 intermediate_json=Path(),
                 images=[],
                 success=False,
-                error="MCP client not connected. Call connect() first."
+                error="MCP client not connected. Call connect() first.",
             )
         try:
             # 1. 构建正确的 JSON-RPC 请求
@@ -82,12 +88,14 @@ class MCPClient:
                     "name": "process_binary_file",
                     "arguments": {  # 使用 arguments 而不是其他字段
                         "file_path": str(file_path.absolute()),
-                        "output_dir": str(output_dir.absolute())
-                    }
-                }
+                        "output_dir": str(output_dir.absolute()),
+                    },
+                },
             }
 
-            logger.info(f"发送 MCP 请求: {json.dumps(request, ensure_ascii=False)}")
+            logger.info(
+                f"发送 MCP 请求: {json.dumps(request, ensure_ascii=False)}"
+            )
 
             # 2. 发送请求
             self.writer.write((json.dumps(request) + "\n").encode())
@@ -97,18 +105,22 @@ class MCPClient:
             response_line = await self.reader.readline()
             response = json.loads(response_line.decode())
 
-            logger.info(f"收到 MCP 响应: {json.dumps(response, ensure_ascii=False)[:500]}")
+            logger.info(
+                f"收到 MCP 响应: {json.dumps(response, ensure_ascii=False)[:500]}"
+            )
 
             # 4. 错误检查
             if "error" in response:
-                error_msg = response["error"].get("message", str(response["error"]))
+                error_msg = response["error"].get(
+                    "message", str(response["error"])
+                )
                 logger.error(f"MCP 错误: {error_msg}")
                 return MCPProcessResult(
                     output_file=Path(),
                     intermediate_json=Path(),
                     images=[],
                     success=False,
-                    error=error_msg
+                    error=error_msg,
                 )
 
             # 5. 提取结果
@@ -122,7 +134,7 @@ class MCPClient:
                     intermediate_json=Path(),
                     images=[],
                     success=False,
-                    error=error
+                    error=error,
                 )
 
             # 6. 从嵌套结构提取文件路径
@@ -134,13 +146,15 @@ class MCPClient:
 
             if not markdown_path or not intermediate_path:
                 error = "MCP response missing required file paths"
-                logger.error(f"{error}: markdown={markdown_path}, intermediate_json={intermediate_path}")
+                logger.error(
+                    f"{error}: markdown={markdown_path}, intermediate_json={intermediate_path}"
+                )
                 return MCPProcessResult(
                     output_file=Path(),
                     intermediate_json=Path(),
                     images=[],
                     success=False,
-                    error=error
+                    error=error,
                 )
 
             logger.info(f"MCP 处理成功，输出文件: {markdown_path}")
@@ -148,7 +162,11 @@ class MCPClient:
             # Process images directory
             images_dir = Path(files["images"]) if files.get("images") else None
             if images_dir and images_dir.exists() and images_dir.is_dir():
-                images = list(images_dir.glob("*.png")) + list(images_dir.glob("*.jpg")) + list(images_dir.glob("*.jpeg"))
+                images = (
+                    list(images_dir.glob("*.png"))
+                    + list(images_dir.glob("*.jpg"))
+                    + list(images_dir.glob("*.jpeg"))
+                )
                 logger.info(f"找到 {len(images)} 张图片")
             else:
                 if images_dir:
@@ -159,7 +177,7 @@ class MCPClient:
                 output_file=Path(markdown_path),
                 intermediate_json=Path(intermediate_path),
                 images=images,
-                success=True
+                success=True,
             )
 
         except Exception as e:
@@ -169,5 +187,5 @@ class MCPClient:
                 intermediate_json=Path(),
                 images=[],
                 success=False,
-                error=str(e)
+                error=str(e),
             )

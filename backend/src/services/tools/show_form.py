@@ -1,7 +1,10 @@
 # backend/src/services/tools/show_form.py
-from typing import List, Dict
+from typing import Dict, List
 import uuid
-from .base import Tool, ToolResult
+
+from .base import Tool
+from .base import ToolResult
+
 
 class ShowFormTool(Tool):
     """显示动态表单工具（A2UI）"""
@@ -11,10 +14,7 @@ class ShowFormTool(Tool):
     parameters = {
         "type": "object",
         "properties": {
-            "title": {
-                "type": "string",
-                "description": "表单标题"
-            },
+            "title": {"type": "string", "description": "表单标题"},
             "fields": {
                 "type": "array",
                 "description": "表单字段列表",
@@ -25,20 +25,26 @@ class ShowFormTool(Tool):
                         "label": {"type": "string"},
                         "type": {
                             "type": "string",
-                            "enum": ["text", "number", "date", "select", "textarea"]
+                            "enum": [
+                                "text",
+                                "number",
+                                "date",
+                                "select",
+                                "textarea",
+                            ],
                         },
                         "required": {"type": "boolean"},
                         "options": {
                             "type": "array",
-                            "items": {"type": "string"}
+                            "items": {"type": "string"},
                         },
                         "default": {"type": "string"},
-                        "placeholder": {"type": "string"}
-                    }
-                }
-            }
+                        "placeholder": {"type": "string"},
+                    },
+                },
+            },
         },
-        "required": ["title", "fields"]
+        "required": ["title", "fields"],
     }
 
     async def execute(self, title: str, fields: List[Dict]) -> ToolResult:
@@ -50,7 +56,7 @@ class ShowFormTool(Tool):
                 "type": "form",
                 "form_id": form_id,
                 "title": title,
-                "fields": fields
+                "fields": fields,
             },
-            requires_user_input=True
+            requires_user_input=True,
         )

@@ -1,12 +1,19 @@
-from sqlmodel import Session, select
-from typing import List, Optional, Dict
+from datetime import datetime
+import io
+import logging
+from typing import Dict, List, Optional
+
 from docx import Document
 from docxtpl import DocxTemplate
-import io
-from datetime import datetime
-from ..models.contract import Contract, ContractField
+from sqlmodel import select
+from sqlmodel import Session
+
+from ..models.contract import Contract
+from ..models.contract import ContractField
 from ..models.template import Template
 from .llm_service import LLMService
+
+logger = logging.getLogger(__name__)
 
 
 class ContractService:
@@ -15,10 +22,7 @@ class ContractService:
         self.llm_service = llm_service
 
     def create_contract(
-        self,
-        name: str,
-        type: str,
-        template_id: Optional[int] = None
+        self, name: str, type: str, template_id: Optional[int] = None
     ) -> Contract:
         contract = Contract(name=name, type=type, template_id=template_id)
 
@@ -35,7 +39,7 @@ class ContractService:
                         field_type=field_data.get("field_type", "text"),
                         group=field_data.get("group"),
                         required=field_data.get("required", True),
-                        order=i
+                        order=i,
                     )
                     contract.fields.append(field)
 
@@ -53,9 +57,7 @@ class ContractService:
         ).all()
 
     def update_contract_fields(
-        self,
-        contract_id: int,
-        field_updates: Dict[str, str]
+        self, contract_id: int, field_updates: Dict[str, str]
     ) -> Optional[Contract]:
         contract = self.session.get(Contract, contract_id)
         if not contract:
@@ -87,7 +89,7 @@ class ContractService:
 
             return output.read()
         except Exception as e:
-            print(f"Error filling contract: {e}")
+            logger.error(f"Error filling contract: {e}", exc_info=True)
             return contract.content
 
     async def review_contract(self, contract_id: int) -> Optional[Dict]:
@@ -105,10 +107,12 @@ class ContractService:
             full_text = "\n".join(text_parts)
             return await self.llm_service.review_contract(full_text[:12000])
         except Exception as e:
-            print(f"Error reviewing contract: {e}")
+            logger.error(f"Error reviewing contract: {e}", exc_info=True)
             return None
 
-    def update_status(self, contract_id: int, status: str) -> Optional[Contract]:
+    def update_status(
+        self, contract_id: int, status: str
+    ) -> Optional[Contract]:
         contract = self.session.get(Contract, contract_id)
         if not contract:
             return None

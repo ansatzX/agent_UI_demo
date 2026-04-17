@@ -1,7 +1,10 @@
-from sqlmodel import SQLModel, Field, Relationship
-from typing import List, Optional
 from datetime import datetime
 import json
+from typing import List, Optional
+
+from sqlmodel import Field
+from sqlmodel import Relationship
+from sqlmodel import SQLModel
 
 
 class ContractField(SQLModel, table=True):
@@ -31,7 +34,7 @@ class Contract(SQLModel, table=True):
 
     fields: List[ContractField] = Relationship(
         back_populates="contract",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
     messages: List["Message"] = Relationship(back_populates="contract")
 

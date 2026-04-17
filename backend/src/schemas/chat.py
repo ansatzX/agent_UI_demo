@@ -1,6 +1,10 @@
-from pydantic import BaseModel
-from typing import List, Optional, Any, Dict
 from datetime import datetime
+import re
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import field_validator
 
 
 class Option(BaseModel):
@@ -25,10 +29,31 @@ class UploadedFile(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    session_id: Optional[str] = None
-    option_id: Optional[str] = None
+    message: str = Field(
+        ..., min_length=1, max_length=10000, description="用户消息内容"
+    )
+    session_id: Optional[str] = Field(
+        None, description="会话ID，格式为 YYYYMMDD_HHMMSS"
+    )
+    option_id: Optional[str] = Field(None, description="选项ID")
     uploaded_file: Optional[UploadedFile] = None
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str) -> str:
+        """验证消息内容"""
+        v = v.strip()
+        if not v:
+            raise ValueError("消息不能为空")
+        return v
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, v: Optional[str]) -> Optional[str]:
+        """验证session_id格式"""
+        if v and not re.match(r"^\d{8}_\d{6}$", v):
+            raise ValueError("session_id格式错误，应为 YYYYMMDD_HHMMSS")
+        return v
 
 
 class ChatResponse(BaseModel):
@@ -41,9 +66,25 @@ class ChatResponse(BaseModel):
 
 
 class SubmitFormRequest(BaseModel):
-    form_id: str
-    values: Dict[str, Any]
-    session_id: str
+    form_id: str = Field(..., min_length=1, description="表单ID")
+    values: Dict[str, Any] = Field(..., min_length=1, description="表单值")
+    session_id: str = Field(..., description="会话ID，格式为 YYYYMMDD_HHMMSS")
+
+    @field_validator("values")
+    @classmethod
+    def validate_values(cls, v: Dict) -> Dict:
+        """验证表单值"""
+        if not v:
+            raise ValueError("表单值不能为空")
+        return v
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, v: str) -> str:
+        """验证session_id格式"""
+        if not re.match(r"^\d{8}_\d{6}$", v):
+            raise ValueError("session_id格式错误，应为 YYYYMMDD_HHMMSS")
+        return v
 
 
 class MessageResponse(BaseModel):

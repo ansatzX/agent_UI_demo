@@ -1,10 +1,16 @@
-from sqlmodel import Session, select
-from typing import List, Optional
-from docx import Document
 import io
+import logging
+from typing import List, Optional
+
+from docx import Document
+from sqlmodel import select
+from sqlmodel import Session
+
 from ..models.template import Template
 from ..schemas.template import FieldInfo
 from .llm_service import LLMService
+
+logger = logging.getLogger(__name__)
 
 
 class TemplateService:
@@ -17,26 +23,28 @@ class TemplateService:
         name: str,
         type: str,
         file_content: bytes,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Template:
         template = Template(
-            name=name,
-            type=type,
-            description=description,
-            content=file_content
+            name=name, type=type, description=description, content=file_content
         )
 
         fields = await self.analyze_template_fields(file_content)
         if fields:
             import json
-            template.field_config = json.dumps([f.model_dump() for f in fields], ensure_ascii=False)
+
+            template.field_config = json.dumps(
+                [f.model_dump() for f in fields], ensure_ascii=False
+            )
 
         self.session.add(template)
         self.session.commit()
         self.session.refresh(template)
         return template
 
-    async def analyze_template_fields(self, file_content: bytes) -> List[FieldInfo]:
+    async def analyze_template_fields(
+        self, file_content: bytes
+    ) -> List[FieldInfo]:
         try:
             doc = Document(io.BytesIO(file_content))
             text_parts = []
@@ -51,28 +59,34 @@ class TemplateService:
 
             full_text = "\n".join(text_parts)
 
-            field_dicts = await self.llm_service.analyze_template(full_text[:8000])
+            field_dicts = await self.llm_service.analyze_template(
+                full_text[:8000]
+            )
 
             fields = []
             for fd in field_dicts:
-                fields.append(FieldInfo(
-                    name=fd.get("name", ""),
-                    label=fd.get("label", ""),
-                    placeholder=fd.get("placeholder"),
-                    field_type=fd.get("field_type", "text"),
-                    group=fd.get("group"),
-                    required=fd.get("required", True)
-                ))
+                fields.append(
+                    FieldInfo(
+                        name=fd.get("name", ""),
+                        label=fd.get("label", ""),
+                        placeholder=fd.get("placeholder"),
+                        field_type=fd.get("field_type", "text"),
+                        group=fd.get("group"),
+                        required=fd.get("required", True),
+                    )
+                )
 
             return fields
         except Exception as e:
-            print(f"Error analyzing template: {e}")
+            logger.error(f"Error analyzing template: {e}", exc_info=True)
             return []
 
     def get_template(self, template_id: int) -> Optional[Template]:
         return self.session.get(Template, template_id)
 
-    def list_templates(self, type_filter: Optional[str] = None) -> List[Template]:
+    def list_templates(
+        self, type_filter: Optional[str] = None
+    ) -> List[Template]:
         query = select(Template).order_by(Template.created_at.desc())
         if type_filter:
             query = query.where(Template.type == type_filter)

@@ -1,7 +1,10 @@
-from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
 from datetime import datetime
 import json
+from typing import Optional
+
+from sqlmodel import Field
+from sqlmodel import Relationship
+from sqlmodel import SQLModel
 
 
 class Message(SQLModel, table=True):

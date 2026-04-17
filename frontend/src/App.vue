@@ -1,10 +1,13 @@
 <template>
-  <div id="app" class="app-container">
-    <ContractWorkspace />
-  </div>
+  <ErrorBoundary>
+    <div id="app" class="app-container">
+      <ContractWorkspace />
+    </div>
+  </ErrorBoundary>
 </template>
 
 <script setup lang="ts">
+import ErrorBoundary from './components/ErrorBoundary.vue'
 import ContractWorkspace from './views/ContractWorkspace.vue'
 </script>
 

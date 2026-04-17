@@ -1,6 +1,9 @@
 # backend/src/services/tools/read_file.py
 from pathlib import Path
-from .base import Tool, ToolResult
+
+from .base import Tool
+from .base import ToolResult
+
 
 class ReadFileTool(Tool):
     """读取文本文件工具"""
@@ -10,12 +13,9 @@ class ReadFileTool(Tool):
     parameters = {
         "type": "object",
         "properties": {
-            "file_path": {
-                "type": "string",
-                "description": "文件路径"
-            }
+            "file_path": {"type": "string", "description": "文件路径"}
         },
-        "required": ["file_path"]
+        "required": ["file_path"],
     }
 
     async def execute(self, file_path: str) -> ToolResult:
@@ -26,17 +26,10 @@ class ReadFileTool(Tool):
                 return ToolResult(
                     success=False,
                     output={},
-                    error=f"File not found: {file_path}"
+                    error=f"File not found: {file_path}",
                 )
 
             content = path.read_text(encoding="utf-8")
-            return ToolResult(
-                success=True,
-                output={"content": content}
-            )
+            return ToolResult(success=True, output={"content": content})
         except Exception as e:
-            return ToolResult(
-                success=False,
-                output={},
-                error=str(e)
-            )
+            return ToolResult(success=False, output={}, error=str(e))

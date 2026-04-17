@@ -1,7 +1,9 @@
 # backend/src/services/tools/read_webpage.py
-import httpx
 from bs4 import BeautifulSoup
-from .base import Tool, ToolResult
+import httpx
+
+from .base import Tool
+from .base import ToolResult
 
 
 class ReadWebpageTool(Tool):
@@ -12,25 +14,27 @@ class ReadWebpageTool(Tool):
     parameters = {
         "type": "object",
         "properties": {
-            "url": {
-                "type": "string",
-                "description": "网页 URL"
-            },
+            "url": {"type": "string", "description": "网页 URL"},
             "selector": {
                 "type": "string",
-                "description": "可选的 CSS 选择器，用于提取特定内容（如 'article', '.content'）"
-            }
+                "description": "可选的 CSS 选择器，用于提取特定内容（如 'article', '.content'）",
+            },
         },
-        "required": ["url"]
+        "required": ["url"],
     }
 
     async def execute(self, url: str, selector: str = None) -> ToolResult:
         """爬取网页"""
         try:
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-                response = await client.get(url, headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                })
+            async with httpx.AsyncClient(
+                timeout=30.0, follow_redirects=True
+            ) as client:
+                response = await client.get(
+                    url,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    },
+                )
                 response.raise_for_status()
 
             soup = BeautifulSoup(response.text, "html.parser")
@@ -59,13 +63,11 @@ class ReadWebpageTool(Tool):
                     "url": url,
                     "title": title,
                     "content": clean_text[:5000],  # 限制长度
-                    "word_count": len(clean_text)
-                }
+                    "word_count": len(clean_text),
+                },
             )
 
         except Exception as e:
             return ToolResult(
-                success=False,
-                output={},
-                error=f"爬取网页失败: {str(e)}"
+                success=False, output={}, error=f"爬取网页失败: {str(e)}"
             )
