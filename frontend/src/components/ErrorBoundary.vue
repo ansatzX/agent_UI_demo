@@ -1,15 +1,15 @@
 <template>
   <div v-if="error" class="error-boundary">
     <div class="error-content">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon">!</div>
       <h2 class="error-title">出错了</h2>
       <p class="error-message">{{ error.message || '抱歉，页面遇到了一些问题' }}</p>
       <div class="error-actions">
-        <button @click="resetError" class="retry-button">
-          🔄 重试
+        <button type="button" @click="resetError" class="retry-button">
+          重试
         </button>
-        <button @click="goHome" class="home-button">
-          🏠 返回首页
+        <button type="button" @click="goHome" class="home-button">
+          返回首页
         </button>
       </div>
     </div>

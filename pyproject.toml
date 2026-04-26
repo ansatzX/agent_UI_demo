@@ -36,6 +36,7 @@ dependencies = [
     "json-repair>=0.25.0",
     "tenacity>=8.2.0",
     "python-magic>=0.4.27",
+    "gradio>=5.0.0",
 ]
 
 [project.optional-dependencies]

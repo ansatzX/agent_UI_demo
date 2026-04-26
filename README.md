@@ -1,10 +1,10 @@
-# 企业合同智能助手
+# AI 智能助手
 
-智能合同生成 + 智能写作双引擎系统
+通用 AI Agent 框架 + 企业合同智能 + 信息采集 多引擎系统
 
-## ✨ 核心功能
+##  核心功能
 
-### 🎯 场景一：智能合同生成
+###  场景一：智能合同生成
 
 **完整流程**：上传模板 → AI 识别占位符 → 动态表单填充 → 一键生成合同 → 主动引导下一步
 
@@ -13,7 +13,7 @@
 - **主动引导** - 完成后主动询问："您是否需要了解合同审批流程？是否需要我为您填充合同？"
 - **流程解释** - 提供合同审批、签署、立项、资金到账等流程的智能解释
 
-### 📝 场景二：智能写作助手
+###  场景二：智能写作助手
 
 **完整流程**：收集素材 → 调用写作工具 → 生成文章 → 支持多种输出格式
 
@@ -22,23 +22,37 @@
 - **风格定制** - 正式、轻松、学术、活泼四种风格可选
 - **多格式输出** - Markdown 文章、纯文本、幻灯片大纲（Slide Outline）
 
-### 📄 文档管理与预览
+###  文档管理与预览
 
 - **实时预览** - 拖放上传 .docx 文档，右侧即时预览，支持缩放（50%-200%）
 - **多文件管理** - 同一会话支持多个文件上传和管理
 - **会话持久化** - JSONL 格式存储，刷新页面不丢失历史对话和文件
 
-## 🏗️ 技术架构
+###  信息采集（即将上线）
 
-### 后端
+- **知乎信息收集** - 通过 MCP 协议接入知乎平台，支持关键词搜索、热门内容采集
+- **网页信息获取** - 直接在对话中使用 read_webpage 工具爬取网页内容
+- **信息汇总报告** - 自动整理归纳采集信息，生成结构化报告
+
+## ️ 技术架构
+
+### 通用 Agent 框架（agent_framework）
+- **ReAct Agent** - 可配置 system prompt 的通用推理-行动循环
+- **LLM Service** - 基于 LiteLLM 的多 Provider 抽象（火山引擎、OpenAI、Anthropic 等）
+- **Tool Registry** - 通用工具注册与执行引擎
+- **Session Service** - JSONL 轻量级会话持久化
+- **MCP Bridge** - 多 MCP 服务器管理器（预留知乎、文档处理等扩展）
+
+### 后端（合同领域）
 - **FastAPI** - 高性能异步 Web 框架
 - **ReAct Agent** - OpenAI 原生 function calling 协议
 - **python-docx** - Word 文档解析与生成
-- **LiteLLM** - 统一 LLM 接口（支持火山引擎、OpenAI、Anthropic 等）
 - **JSONL Session** - 轻量级会话持久化
+- **MCP Bridge** - 多 MCP 服务器连接管理
 
 ### 前端
-- **Vue 3 + TypeScript** - 现代响应式框架，完整类型安全
+- **Vue 3 + TypeScript** - 现代响应式框架，完整类型安全（Web 端）
+- **Gradio** - Python 原生交互界面（快速原型端）
 - **Pinia** - 状态管理（chat、contract stores）
 - **@vue-office/docx** - 专业 Word 文档预览
 - **DynamicForm** - 动态表单组件（A2UI）
@@ -50,7 +64,7 @@
 - **read_webpage** - 爬取网页内容，提取文本用于写作素材
 - **write_article** - 根据主题和素材生成文章、报告、新闻稿等
 
-## 🚀 一键安装与启动
+##  一键安装与启动
 
 ### 前置要求
 
@@ -83,26 +97,41 @@ api_key = "your-api-key-here"
 base_url = "https://ark.cn-beijing.volces.com/api/v3"
 ```
 
-### 步骤 3：一键启动
+### 步骤 3：安装依赖
+
+```bash
+# Python 依赖
+uv pip install -e ". 
+
+# 前端依赖（Vue）
+cd frontend && npm install && cd ..
+```
+
+### 步骤 4：启动
+
+**方式一：Vue 前端 + FastAPI 后端（合同功能全量）**
+
+```bash
+make install
+make start
+```
+访问 **http://localhost:5173**
+
+**方式二：Gradio 前端（通用 Agent + 预留信息采集）**
+
+```bash
+make start-gradio
+```
+访问 **http://localhost:7860**
+
+**方式三：一键启动脚本**
 
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-启动脚本会自动：
-- ✅ 创建 Python 虚拟环境（`.venv/`）
-- ✅ 安装后端依赖（`uv pip install`）
-- ✅ 安装前端依赖（`npm install`）
-- ✅ 创建必要目录（`uploads/`、`sessions/`、`templates/`）
-- ✅ 启动后端服务（http://localhost:8000）
-- ✅ 启动前端服务（http://localhost:5173）
-
-### 步骤 4：访问应用
-
-打开浏览器访问：**http://localhost:5173**
-
-## 📖 使用指南
+##  使用指南
 
 ### 场景一：智能合同生成
 
@@ -112,7 +141,7 @@ chmod +x start.sh
 2. **触发识别** - 发送消息如"我要与企业签订技术合同"或"帮我填写这份模板"
 3. **填写表单** - AI 识别占位符后，弹出动态表单（如 `{{甲方}}`、`{{乙方}}`、`{{合同编号}}`）
 4. **生成合同** - 填写表单并提交，AI 自动生成合同文档
-5. **预览下载** - 点击 **👁️ 预览** 在右侧查看，或点击 **⬇️ 下载** 下载文件
+5. **预览下载** - 点击 ** 预览** 在右侧查看，或点击 ** 下载** 下载文件
 6. **主动引导** - AI 会主动询问："您是否需要了解合同审批流程？是否需要合同签署、立项、资金到账等流程解释？"
 
 #### 示例对话
@@ -203,7 +232,7 @@ Cunxi Gong is a PhD student in Physics at The Chinese University of Hong Kong, S
 
 AI：好的，我来为您撰写公众号推文和幻灯片大纲。
 
-# 🎉 大学生创新创业大赛：点燃梦想，创造未来！
+#  大学生创新创业大赛：点燃梦想，创造未来！
 
 [公众号推文内容...]
 
@@ -232,7 +261,7 @@ AI：好的，我来为您撰写公众号推文和幻灯片大纲。
 ### 文件管理
 
 - **上传文件**：拖放 `.docx` 文档到聊天区域
-- **查看文件**：点击消息中的 📎 文件链接
+- **查看文件**：点击消息中的  文件链接
 - **多文件支持**：同一会话可上传多个文件，历史记录保留
 - **预览操作**：右侧预览区支持缩放（50%-200%）、下载、删除
 
@@ -240,59 +269,81 @@ AI：好的，我来为您撰写公众号推文和幻灯片大纲。
 
 - **历史会话**：左侧面板显示所有历史会话，点击切换
 - **新建会话**：点击"+ 新对话"按钮
-- **删除会话**：点击会话右侧的 🗑️ 按钮
+- **删除会话**：点击会话右侧的  按钮
 
-## 🛠️ 项目结构
+## ️ 项目结构
 
 ```
-cuhksz_demo/
+agent-ui-demo/
 ├── backend/                    # Python 后端
 │   ├── src/
+│   │   ├── agent_framework/   # 通用 Agent 框架
+│   │   │   ├── agent.py       # ReAct Agent（可配置 system prompt）
+│   │   │   ├── llm.py         # LLM 服务（LiteLLM 封装）
+│   │   │   ├── tool_registry.py     # 工具注册与执行
+│   │   │   ├── session.py     # JSONL 会话管理
+│   │   │   ├── mcp_bridge.py  # MCP 服务器管理器
+│   │   │   └── tools/base.py  # Tool/ToolResult 基类
+│   │   ├── gradio_app/        # Gradio 前端
+│   │   │   └── app.py         # Blocks 界面（对话/信息收集/设置）
 │   │   ├── api/               # FastAPI 路由
 │   │   │   ├── chat.py        # 聊天 API + /submit-form
 │   │   │   ├── files.py       # 文件上传/下载/预览
 │   │   │   ├── contracts.py   # 合同管理
 │   │   │   └── templates.py   # 模板管理
-│   │   ├── services/          # 业务逻辑层
-│   │   │   ├── agent_service.py       # Agent 主服务（handle_message, handle_form_submission）
-│   │   │   ├── react_agent.py         # ReAct Agent（OpenAI function calling）
-│   │   │   ├── llm_service.py         # LLM 调用（generate_react_response）
-│   │   │   ├── session_service.py     # JSONL 会话管理
+│   │   ├── services/          # 业务逻辑层（继承 agent_framework）
+│   │   │   ├── agent_service.py       # Agent 主服务
+│   │   │   ├── react_agent.py         # 合同领域 ReAct Agent
+│   │   │   ├── llm_service.py         # 扩展 LLM（合同审查、模板分析）
+│   │   │   ├── session_service.py     # 扩展会话（文件元数据）
 │   │   │   ├── file_service.py        # 文件解析（python-docx）
-│   │   │   ├── doc_generator.py       # 文档生成（fill_template_simple）
+│   │   │   ├── doc_generator.py       # 文档生成
 │   │   │   └── tools/                 # 工具系统
-│   │   │       ├── show_form.py       # 动态表单工具
-│   │   │       ├── generate_document.py # 文档生成工具
-│   │   │       ├── read_webpage.py    # 网页爬取工具
-│   │   │       └── write_article.py   # 智能写作工具
+│   │   │       ├── base.py            # 框架导入桥接
+│   │   │       ├── show_form.py       # 动态表单
+│   │   │       ├── generate_document.py  # 文档生成
+│   │   │       ├── read_webpage.py    # 网页爬取
+│   │   │       └── write_article.py   # 智能写作
 │   │   ├── models/            # SQLModel 数据模型
 │   │   ├── schemas/           # Pydantic schemas
-│   │   └── main.py            # 应用入口（lifespan 初始化）
+│   │   └── main.py            # FastAPI 入口
 │   └── tests/                 # 测试文件
 ├── frontend/                   # Vue 3 前端
 │   ├── src/
 │   │   ├── views/
-│   │   │   └── ContractWorkspace.vue  # 主界面（聊天 + 预览 + 会话列表）
+│   │   │   └── ContractWorkspace.vue  # 主界面
 │   │   ├── components/
-│   │   │   └── DynamicForm.vue        # 动态表单组件（A2UI）
+│   │   │   └── DynamicForm.vue        # 动态表单（A2UI）
 │   │   ├── stores/
-│   │   │   ├── chat.ts        # 聊天状态（sendMessage, submitForm）
+│   │   │   ├── chat.ts        # 聊天状态
 │   │   │   └── contract.ts    # 合同状态
 │   │   ├── api/
-│   │   │   └── client.ts      # API 客户端（chatApi, fileApi）
+│   │   │   └── client.ts      # API 客户端
 │   │   └── types/             # TypeScript 类型
-│   │       ├── index.ts       # Message 联合类型
-│   │       └── form.ts        # FormDefinition, FormField
 │   └── ...
 ├── sessions/                   # JSONL 会话数据
 ├── uploads/                    # 上传和生成的文件
 ├── config.example.toml         # LLM API 配置示例
-├── start.sh                    # 一键启动脚本
-├── stop.sh                     # 停止服务脚本
+├── start.py                    # FastAPI 启动入口
+├── start_gradio.py             # Gradio 启动入口
+├── Makefile                    # 构建/启动命令
 └── pyproject.toml              # Python 项目配置
 ```
 
-## 🔧 开发指南
+##  开发指南
+
+### Makefile 命令
+
+```bash
+make start           # 启动 Vue 前端 + FastAPI 后端
+make start-backend   # 仅启动 FastAPI 后端（前台）
+make start-frontend  # 仅启动 Vue 前端（前台）
+make start-gradio    # 启动 Gradio 前端（前台）
+make stop            # 停止所有服务
+make status          # 查看服务状态
+make logs            # 查看日志
+make clean           # 清理临时文件
+```
 
 ### 后端开发
 
@@ -314,6 +365,9 @@ ruff check .
 
 # 手动启动后端（开发模式）
 uvicorn backend.src.main:app --reload
+
+# 启动 Gradio（开发模式）
+python start_gradio.py
 ```
 
 ### 前端开发
@@ -334,7 +388,7 @@ npm run build
 npm run preview
 ```
 
-## 🎯 核心工作流
+##  核心工作流
 
 ### 场景一：智能合同生成
 
@@ -413,7 +467,14 @@ AI: Re-calling write_article with output_format="slide_outline"
     - Key point 2
     ...
 
-## 🔍 技术亮点
+##  技术亮点
+
+### agent_framework — 通用 Agent 框架
+
+- **可配置 ReAct Agent**：system prompt 可自定义，适配合同、写作、信息采集等任意场景
+- **多 Provider LLM**：通过 LiteLLM 统一接口（火山引擎、OpenAI、Anthropic）
+- **插件式 Tool**：注册任意工具，自动生成 OpenAI function calling 定义
+- **MCP Bridge**：多 MCP 服务器管理器，标准 JSON-RPC 协议，预留知乎扩展
 
 ### ReAct Agent + OpenAI Function Calling
 
@@ -433,7 +494,13 @@ AI: Re-calling write_article with output_format="slide_outline"
 - **唯一文件名**：时间戳 + UUID 前缀，避免覆盖
 - **双按钮**：预览（VueOfficeDocx）+ 下载（URL 下载）
 
-## 📝 配置说明
+### Gradio 前端
+
+- **Python 原生 UI**：无需 Node.js 环境，适合快速原型
+- **三标签页布局**：对话 / 信息收集（预留）/ 设置
+- **同一 Agent 后端**：与 Vue 前端共享 agent_framework 核心
+
+##  配置说明
 
 ### LLM API 配置（config.toml）
 
@@ -456,7 +523,7 @@ base_url = "https://ark.cn-beijing.volces.com/api/v3"
 - 最大文件大小：200MB
 - 存储位置：`uploads/` 目录
 
-## 🛑 停止服务
+##  停止服务
 
 ```bash
 ./stop.sh
@@ -464,14 +531,14 @@ base_url = "https://ark.cn-beijing.volces.com/api/v3"
 
 或按 `Ctrl+C` 停止启动脚本
 
-## 📄 许可证
+##  许可证
 
 MIT
 
-## 🤝 贡献
+##  贡献
 
 欢迎提交 Issue 和 Pull Request！
 
 ---
 
-**Made with ❤️ for enterprise contract automation**
+**Made with  for enterprise contract automation**

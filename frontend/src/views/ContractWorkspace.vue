@@ -1,7 +1,7 @@
 <template>
   <div class="workspace">
     <header class="workspace-header">
-      <h1>📄 企业技术合同智能助手</h1>
+      <h1>企业技术合同智能助手</h1>
     </header>
 
     <div class="workspace-content">
@@ -9,7 +9,7 @@
       <div class="sessions-panel">
         <div class="sessions-header">
           <h2>历史会话</h2>
-          <button @click="createNewSession" class="new-chat-btn">+ 新对话</button>
+          <button type="button" @click="createNewSession" class="new-chat-btn">+ 新对话</button>
         </div>
         <div class="sessions-list">
           <div
@@ -22,7 +22,7 @@
               <div class="session-time">{{ formatTime(session.created_at) }}</div>
               <div class="session-message">{{ session.last_message || '新会话' }}</div>
               <div v-if="session.has_file" class="session-file">
-                <span class="file-indicator">📎</span>
+                <span class="file-indicator">[文件]</span>
                 <span class="file-name">
                   {{ session.file_names && session.file_names.length > 0
                     ? (session.file_names.length === 1
@@ -31,7 +31,7 @@
                     : ''
                   }}
                 </span>
-                <button
+                <button type="button"
                   v-if="session.file_names && session.file_names.length === 1"
                   @click.stop="downloadSessionFile(
                     session.files && session.files[0]
@@ -41,11 +41,11 @@
                   class="download-link"
                   title="下载文件"
                 >
-                  ⬇️
+                  下载
                 </button>
               </div>
             </div>
-            <button @click.stop="deleteSession(session.id)" class="delete-btn">🗑️</button>
+            <button type="button" @click.stop="deleteSession(session.id)" class="delete-btn">删除</button>
           </div>
           <div v-if="chatStore.sessions.length === 0" class="empty-sessions">
             暂无历史会话
@@ -63,7 +63,7 @@
           @dragleave.prevent.stop="isDraggingFile = false"
         >
           <div class="drag-content">
-            <div class="drag-icon">📁</div>
+            <div class="drag-icon">[上传]</div>
             <p>拖放文件到此处上传</p>
             <p class="drag-hint">仅支持 .docx 格式，最大 200MB</p>
           </div>
@@ -85,12 +85,12 @@
                 v-if="msg.role === 'user' && 'uploaded_file' in msg && msg.uploaded_file"
                 class="message-file-link"
               >
-                <button
+                <button type="button"
                   @click="showFile(msg.uploaded_file)"
                   class="file-link-btn"
                   :title="`查看文档: ${msg.uploaded_file.original_filename || msg.uploaded_file.filename}`"
                 >
-                  📎 {{ msg.uploaded_file.original_filename || msg.uploaded_file.filename }}
+                  [文件] {{ msg.uploaded_file.original_filename || msg.uploaded_file.filename }}
                 </button>
               </div>
               <!-- 在 assistant 消息后显示工具结果（表单） -->
@@ -110,19 +110,26 @@
                     @submit="(values) => chatStore.submitForm(tr.output.form_id, values)"
                   />
                   <a
-                    v-else-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && tr.output.download_url"
-                    :href="tr.output.download_url"
+                    v-else-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && toSameOriginUrl(tr.output.download_url)"
+                    :href="toSameOriginUrl(tr.output.download_url) || undefined"
                     :download="tr.output.display_name || tr.output.filename"
                     class="download-doc-btn"
+                    rel="noopener noreferrer"
                   >
-                    ⬇️ 下载 {{ tr.output.display_name || tr.output.filename }}
+                    下载 {{ tr.output.display_name || tr.output.filename }}
                   </a>
-                  <button
+                  <div
+                    v-else-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && tr.output.download_url && !toSameOriginUrl(tr.output.download_url)"
+                    class="security-warning"
+                  >
+                    ⚠️ 后端返回了非同源下载链接，已被安全策略拦截：{{ tr.output.download_url }}
+                  </div>
+                  <button type="button"
                     v-if="(tr.tool_name === 'generate_document' || tr.tool_name === 'save_document') && tr.success && tr.output && tr.output.filename"
                     @click="previewGeneratedDoc(tr.output.filename)"
                     class="preview-doc-btn"
                   >
-                    👁️ 预览
+                     预览
                   </button>
                 </template>
               </div>
@@ -134,7 +141,7 @@
             <div class="loading">
               <div class="loading-spinner"></div>
               <span>AI 正在思考...</span>
-              <button @click="cancelResponse" class="cancel-btn">中断</button>
+              <button type="button" @click="cancelResponse" class="cancel-btn">中断</button>
             </div>
           </div>
         </div>
@@ -142,10 +149,10 @@
         <!-- 统计信息 -->
         <div class="stats-bar" v-if="chatStore.currentTokenUsage || chatStore.currentResponseTime">
           <span v-if="chatStore.currentResponseTime" class="stat">
-            ⏱️ {{ chatStore.currentResponseTime.toFixed(2) }}秒
+            [时间] {{ chatStore.currentResponseTime.toFixed(2) }}秒
           </span>
           <span v-if="chatStore.currentTokenUsage" class="stat">
-            📊 输入: {{ chatStore.currentTokenUsage.prompt_tokens }} |
+            [统计] 输入: {{ chatStore.currentTokenUsage.prompt_tokens }} |
             输出: {{ chatStore.currentTokenUsage.completion_tokens }} |
             总计: {{ chatStore.currentTokenUsage.total_tokens }}
           </span>
@@ -154,10 +161,10 @@
         <!-- 已上传文件显示 -->
         <div v-if="uploadedFile" class="uploaded-file-preview">
           <div class="file-card">
-            <span class="file-icon">📄</span>
+            <span class="file-icon">[文件]</span>
             <span class="file-name">{{ uploadedFile.filename }}</span>
-            <button @click="uploadedFile = null" class="remove-file-btn" title="移除文件">
-              ✕
+            <button type="button" @click="uploadedFile = null" class="remove-file-btn" title="移除文件">
+              移除
             </button>
           </div>
         </div>
@@ -169,14 +176,14 @@
             :placeholder="uploadedFile ? '已附加文件，输入消息发送...' : '输入消息...'"
             :disabled="chatStore.isLoading"
           />
-          <button @click="send" :disabled="chatStore.isLoading">发送</button>
+          <button type="button" @click="send" :disabled="chatStore.isLoading">发送</button>
         </div>
       </div>
 
       <div class="contract-panel">
         <!-- 空状态提示 -->
         <div v-if="!uploadedFile" class="empty-state">
-          <div class="empty-icon">📄</div>
+          <div class="empty-icon">[预览]</div>
           <h2>文档预览区</h2>
           <p>在左侧聊天区拖放文件以上传</p>
           <p class="hint-text">或点击聊天消息中的文档链接预览</p>
@@ -185,33 +192,33 @@
         <!-- 文件预览区域 -->
         <div v-else class="preview-area">
           <div class="preview-header">
-            <h3>📄 {{ uploadedFile.filename }}</h3>
+            <h3>[文档] {{ uploadedFile.filename }}</h3>
             <div class="preview-actions">
               <!-- 缩放控制 -->
               <div class="zoom-controls">
-                <button @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 50" title="缩小">
-                  ➖
+                <button type="button" @click="zoomOut" class="zoom-btn" :disabled="zoomLevel <= 50" title="缩小">
+                  -
                 </button>
                 <span class="zoom-level">{{ zoomLevel }}%</span>
-                <button @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 200" title="放大">
-                  ➕
+                <button type="button" @click="zoomIn" class="zoom-btn" :disabled="zoomLevel >= 200" title="放大">
+                  +
                 </button>
-                <button @click="resetZoom" class="zoom-btn" title="重置">
-                  🔄
+                <button type="button" @click="resetZoom" class="zoom-btn" title="重置">
+                  重置
                 </button>
               </div>
-              <button @click="downloadFile" class="action-btn">⬇️ 下载</button>
-              <button @click="clearFile" class="action-btn delete-btn">🗑️ 删除</button>
+              <button type="button" @click="downloadFile" class="action-btn">下载</button>
+              <button type="button" @click="clearFile" class="action-btn delete-btn">删除</button>
             </div>
           </div>
 
           <div class="file-stats">
-            <span class="stat-item">📊 文件大小: {{ formatFileSize(uploadedFile.size) }}</span>
+            <span class="stat-item">[大小] 文件大小: {{ formatFileSize(uploadedFile.size) }}</span>
             <span v-if="uploadedFile.parsed?.paragraphs_count" class="stat-item">
-              📝 段落数: {{ uploadedFile.parsed.paragraphs_count }}
+              [段落] 段落数: {{ uploadedFile.parsed.paragraphs_count }}
             </span>
             <span v-if="uploadedFile.parsed?.tables_count" class="stat-item">
-              📊 表格数: {{ uploadedFile.parsed.tables_count }}
+              [表格] 表格数: {{ uploadedFile.parsed.tables_count }}
             </span>
           </div>
 
@@ -219,7 +226,7 @@
           <div v-if="uploadedFile.unique_filename" class="preview-content">
             <div class="preview-wrapper" :style="{ transform: `scale(${zoomLevel / 100})` }">
               <VueOfficeDocx
-                :src="`/api/files/preview-docx/${uploadedFile.unique_filename}`"
+                :src="`/api/files/preview-docx/${encodeURIComponent(uploadedFile.unique_filename)}`"
                 class="docx-preview"
               />
             </div>
@@ -228,7 +235,7 @@
           <!-- 后备：显示解析的文本内容 -->
           <div v-else-if="uploadedFile.parsed?.success" class="preview-content fallback">
             <div class="content-section">
-              <h4>📝 文档内容</h4>
+              <h4>[内容] 文档内容</h4>
               <div class="document-content">
                 <div v-for="(para, idx) in uploadedFile.parsed.paragraphs" :key="idx" class="paragraph">
                   {{ para }}
@@ -237,7 +244,7 @@
             </div>
 
             <div v-if="uploadedFile.parsed.tables.length > 0" class="content-section">
-              <h4>📊 表格内容 ({{ uploadedFile.parsed.tables.length }} 个表格)</h4>
+              <h4>[表格] 表格内容 ({{ uploadedFile.parsed.tables.length }} 个表格)</h4>
               <div v-for="(table, tIdx) in uploadedFile.parsed.tables" :key="tIdx" class="table-container">
                 <table class="preview-table">
                   <tbody>
@@ -251,7 +258,7 @@
           </div>
 
           <div v-else class="error-message">
-            ❌ 文件解析失败: {{ uploadedFile.parsed?.error }}
+            [错误] 文件解析失败: {{ uploadedFile.parsed?.error }}
           </div>
         </div>
       </div>
@@ -260,7 +267,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useContractStore } from '@/stores/contract'
 import DynamicForm from '@/components/DynamicForm.vue'
@@ -270,9 +277,73 @@ import '@vue-office/docx/lib/index.css'
 import { marked } from 'marked'
 
 // Configure marked for safe rendering
+const escapeHtml = (unsafe: string) =>
+  unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+const isSafeHref = (href: string) => {
+  const h = href.trim().toLowerCase()
+  if (h.startsWith('/') || h.startsWith('#')) return true
+
+  const schemeMatch = h.match(/^([a-z][a-z0-9+.-]*):/)
+  if (!schemeMatch) return true // 相对路径
+
+  const scheme = schemeMatch[1]
+  return scheme === 'http' || scheme === 'https' || scheme === 'mailto'
+}
+
+class SafeMarkdownRenderer extends marked.Renderer {
+  override html(_token: unknown): string {
+    return ''
+  }
+
+  override image(_token: unknown): string {
+    return ''
+  }
+
+  override link(token: any): string {
+    const safeHref = String(token?.href || '').trim()
+    const inner = token?.tokens
+      ? this.parser.parseInline(token.tokens)
+      : escapeHtml(String(token?.text || ''))
+
+    if (!safeHref || !isSafeHref(safeHref)) {
+      return inner
+    }
+
+    const title = token?.title ? String(token.title) : ''
+    const titleAttr = title ? ` title="${escapeHtml(title)}"` : ''
+    const isExternal = /^https?:/i.test(safeHref)
+    const targetAttr = isExternal ? ' target="_blank"' : ''
+    const relAttr = isExternal ? ' rel="noopener noreferrer nofollow"' : ''
+
+    return `<a href="${escapeHtml(safeHref)}"${titleAttr}${targetAttr}${relAttr}>${inner}</a>`
+  }
+}
+
+const mdRenderer = new SafeMarkdownRenderer()
+
+const toSameOriginUrl = (raw: unknown): string | null => {
+  if (typeof raw !== 'string') return null
+  const s = raw.trim()
+  if (!s) return null
+  try {
+    const u = new URL(s, window.location.origin)
+    if (u.origin !== window.location.origin) return null
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
 marked.setOptions({
   breaks: true, // Convert line breaks to <br>
-  gfm: true // GitHub Flavored Markdown
+  gfm: true, // GitHub Flavored Markdown
+  renderer: mdRenderer
 })
 
 const renderMarkdown = (text: string) => {
@@ -281,7 +352,7 @@ const renderMarkdown = (text: string) => {
     return marked.parse(text) as string
   } catch (e) {
     console.error('Markdown parse error:', e)
-    return text
+    return escapeHtml(text)
   }
 }
 
@@ -339,7 +410,7 @@ const deleteSession = async (sessionId: string) => {
 
 const downloadSessionFile = async (filename: string) => {
   try {
-    const response = await axios.get(`/api/files/download/${filename}`, {
+    const response = await axios.get(`/api/files/download/${encodeURIComponent(filename)}`, {
       responseType: 'blob'
     })
 
@@ -374,9 +445,13 @@ const formatTime = (timestamp: string) => {
   }
 }
 
+const preventDefaults = (e: DragEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+}
+
 const handleChatDrop = async (event: DragEvent) => {
-  event.preventDefault()
-  event.stopPropagation()
+  preventDefaults(event)
   isDraggingFile.value = false
 
   const file = event.dataTransfer?.files[0]
@@ -424,8 +499,8 @@ const resetZoom = () => {
 
 const uploadFile = async (file: File) => {
   // 检查文件格式
-  if (!file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
-    alert('只支持 .doc 和 .docx 格式的文件')
+  if (!file.name.endsWith('.docx')) {
+    alert('只支持 .docx 格式的文件')
     return
   }
 
@@ -473,7 +548,8 @@ const downloadFile = async () => {
   if (!uploadedFile.value) return
 
   try {
-    const response = await axios.get(`/api/files/download/${uploadedFile.value.filename}`, {
+    const downloadName = uploadedFile.value.unique_filename || uploadedFile.value.filename
+    const response = await axios.get(`/api/files/download/${encodeURIComponent(downloadName)}`, {
       responseType: 'blob'
     })
 
@@ -495,7 +571,7 @@ const clearFile = async () => {
   if (!confirm('确定要删除这个文件吗？')) return
 
   try {
-    await axios.delete(`/api/files/${uploadedFile.value.unique_filename}`)
+    await axios.delete(`/api/files/${encodeURIComponent(uploadedFile.value.unique_filename)}`)
     uploadedFile.value = null
   } catch (error) {
     console.error('文件删除失败:', error)
@@ -510,12 +586,6 @@ const formatFileSize = (bytes: number) => {
 }
 
 onMounted(async () => {
-  // 阻止浏览器默认的拖放行为
-  const preventDefaults = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
   // 添加全局拖放事件监听
   document.addEventListener('dragenter', preventDefaults)
   document.addEventListener('dragover', preventDefaults)
@@ -531,6 +601,12 @@ onMounted(async () => {
   if (chatStore.messages.length === 0) {
     chatStore.sendMessage('你好')
   }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('dragenter', preventDefaults)
+  document.removeEventListener('dragover', preventDefaults)
+  document.removeEventListener('drop', preventDefaults)
 })
 </script>
 
@@ -919,6 +995,18 @@ onMounted(async () => {
 
 .preview-doc-btn:hover {
   background: #2563eb;
+}
+
+.security-warning {
+  margin-top: 10px;
+  padding: 12px 16px;
+  background: #fef3cd;
+  border: 1px solid #ffc107;
+  border-left: 4px solid #ff9800;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #856404;
+  line-height: 1.5;
 }
 
 .loading-container {
