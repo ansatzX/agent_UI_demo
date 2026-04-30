@@ -1,0 +1,1 @@
+"""Hotspot source collectors."""

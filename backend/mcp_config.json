@@ -1,19 +1,10 @@
 {
-  "mcpServers": [
-    {
-      "name": "local_read_mcp",
-      "command": "uv",
-      "args": [
-        "--directory",
-        "./backend/mcp/Local_Read_MCP",
-        "run",
-        "--with",
-        "local_read_mcp",
-        "python",
-        "-m",
-        "local_read_mcp.server"
-      ],
-      "env": {}
+  "mcpServers": {
+    "zhihu": {
+      "command": "node",
+      "args": ["/Users/ansatz/data/code/zhihu-tools/dist/mcp/index.js"],
+      "env": {},
+      "description": "知乎热点与搜索 MCP"
     }
-  ]
+  }
 }

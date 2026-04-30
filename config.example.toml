@@ -33,3 +33,15 @@ api_base = "https://api.anthropic.com"
 
 [cors]
 origins = ["http://localhost:5173", "http://localhost:3000"]
+
+# AIHubMix / Jina DeepSearch 配置（用于热点巡检）
+[providers.aihubmix]
+api_key = "your_aihubmix_api_key_here"
+api_base = "https://aihubmix.com/v1"
+
+[deepsearch]
+model = "jina-deepsearch-v1"
+provider = "aihubmix"
+
+[hotspot]
+profile_path = "backend/config/hotspot_profile.toml"
