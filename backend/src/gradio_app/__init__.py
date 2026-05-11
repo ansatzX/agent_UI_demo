@@ -1,3 +1,4 @@
-from .app import create_app, GradioChatHandler
+from .app import create_gradio_blocks
+from .gradio_chat import GradioChatHandler
 
-__all__ = ["create_app", "GradioChatHandler"]
+__all__ = ["create_gradio_blocks", "GradioChatHandler"]

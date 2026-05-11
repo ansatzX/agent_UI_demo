@@ -10,7 +10,11 @@ from fastapi import Query
 from fastapi import Request
 from fastapi import UploadFile
 from fastapi.responses import FileResponse
-import magic
+try:
+    import magic
+    _has_magic = True
+except ImportError:
+    _has_magic = False
 
 from ..services.file_service import FileService
 from ..services.session_service import SessionService
@@ -34,7 +38,7 @@ def validate_file_path(filename: str, uploads_dir: Path) -> Path:
 def validate_file_type(file_content: bytes, filename: str) -> None:
     """验证文件类型（MIME类型 + 魔数验证）"""
     try:
-        mime = magic.from_buffer(file_content, mime=True)
+        mime = magic.from_buffer(file_content, mime=True) if _has_magic else None
         if (
             mime
             != "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

@@ -137,6 +137,7 @@ def _merge_detail(item: SourceItem, text: str, detail_tool: str) -> SourceItem:
         summary=summary,
         heat=item.heat,
         published_at=item.published_at,
+        evidence_tier=item.evidence_tier,
         raw=raw,
     )
 
@@ -230,7 +231,7 @@ def _parse_zhihu_text(text: str, limit: int) -> List[SourceItem]:
                 )
                 url = str(row.get("url") or row.get("link") or obj.get("url") or "")
                 heat = _coerce_heat(row.get("heat") or row.get("hot") or row.get("score") or 0.8)
-                items.append(SourceItem(source="zhihu", title=title, url=url, summary=summary, heat=heat, raw=row))
+                items.append(SourceItem(source="zhihu", title=title, url=url, summary=summary, heat=heat, evidence_tier="news_report", raw=row))
             return items
 
     lines = [line.strip(" -\t") for line in text.splitlines() if line.strip()]
@@ -238,7 +239,7 @@ def _parse_zhihu_text(text: str, limit: int) -> List[SourceItem]:
         return []
     title = lines[0]
     summary = "\n".join(lines[1:]) or title
-    return [SourceItem(source="zhihu", title=title, summary=summary, heat=0.8, raw={"text": text})]
+    return [SourceItem(source="zhihu", title=title, summary=summary, heat=0.8, evidence_tier="news_report", raw={"text": text})]
 
 
 def _coerce_heat(value: Any) -> float:

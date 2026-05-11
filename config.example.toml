@@ -1,47 +1,49 @@
-# 合同智能助手配置文件
-# 复制此文件为 config.toml 并根据需要修改
+# AI 智能助手配置文件
+# 复制为 config.toml 并修改
 
 [app]
-name = "合同智能助手"
+name = "AI 智能助手"
 host = "0.0.0.0"
 port = 8000
 database_url = "sqlite:///./contracts.db"
 
 [llm]
 default_model = "deepseek/deepseek-chat"
+# 用于深度研究的模型（可选，不填则用 default_model）
+# research_model = "deepseek/deepseek-reasoner"
 
 [providers]
-# DeepSeek配置
 [providers.deepseek]
-api_key = "your_deepseek_api_key_here"
+api_key = "DEEPSEEK_API_KEY"
 api_base = "https://api.deepseek.com"
 
-# 火山引擎配置
 [providers.volcengine]
-api_key = "your_volc_api_key_here"
+api_key = "VOLCENGINE_API_KEY"
 api_base = "https://ark.cn-beijing.volces.com/api/v3"
 
-# 火山引擎Coding Plan
-[providers.volcengine_coding_plan]
-api_key = "your_volc_api_key_here"
-api_base = "https://ark.cn-beijing.volces.com/api/coding/v3"
-
-# Anthropic配置 (备选)
 [providers.anthropic]
-api_key = "your_anthropic_api_key_here"
+api_key = "ANTHROPIC_API_KEY"
 api_base = "https://api.anthropic.com"
+
+[providers.aihubmix]
+api_key = "AIHUBMIX_API_KEY"
+api_base = "https://aihubmix.com/v1"
 
 [cors]
 origins = ["http://localhost:5173", "http://localhost:3000"]
 
-# AIHubMix / Jina DeepSearch 配置（用于热点巡检）
-[providers.aihubmix]
-api_key = "your_aihubmix_api_key_here"
-api_base = "https://aihubmix.com/v1"
-
+# Jina DeepSearch（热点巡检）
 [deepsearch]
 model = "jina-deepsearch-v1"
 provider = "aihubmix"
 
+# 热点巡检创作者画像
 [hotspot]
 profile_path = "backend/config/hotspot_profile.toml"
+
+# 研究配置
+[research]
+# 每轮搜索最大结果数
+max_results_per_query = 10
+# 多源交叉验证最少源数
+min_sources_for_claim = 2

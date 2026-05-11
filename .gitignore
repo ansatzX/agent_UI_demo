@@ -11,9 +11,6 @@ sessions/
 # 上传文件
 uploads/
 
-# 前端构建产物
-frontend/dist/
-frontend/node_modules/
 
 # IDE
 .vscode/

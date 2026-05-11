@@ -14,10 +14,12 @@ Example:
 """
 
 import logging
+import os
 from pathlib import Path
 import sys
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 import tomlkit
 
 logger = logging.getLogger(__name__)
@@ -50,6 +52,7 @@ class Settings:
         """
         # Project root directory (where start.py is located)
         self.project_root = Path(__file__).parent.parent.parent
+        load_dotenv(self.project_root / ".env")
 
         if config_path is None:
             config_path = self.project_root / "config.toml"
@@ -157,12 +160,17 @@ class Settings:
         provider = self.get_provider_config(provider_name)
         if provider and "api_key" in provider:
             api_key = provider.get("api_key")
-            if not api_key:
+            if not api_key or api_key.strip() == "":
                 logger.warning(
                     f"API key for {provider_name} is empty, "
                     f"please configure it in config.toml"
                 )
-            return api_key
+                return None
+            # Resolve environment variable if api_key is an env var name
+            resolved = api_key
+            if api_key.isascii() and api_key.isupper() and "_" in api_key:
+                resolved = os.getenv(api_key)
+            return resolved if resolved else None
 
         logger.warning(
             f"Configuration for {provider_name} not found, "

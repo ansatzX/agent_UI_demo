@@ -66,5 +66,5 @@ def _parse_deepsearch_content(content: str, limit: int) -> List[SourceItem]:
             continue
         title = re.sub(r"^\d+[\.、]\s*", "", lines[0]).strip()
         summary = "\n".join(lines[1:]).strip() or title
-        items.append(SourceItem(source="jina-deepsearch", title=title, summary=summary, heat=0.65, raw={"content": block}))
+        items.append(SourceItem(source="jina-deepsearch", title=title, summary=summary, heat=0.65, evidence_tier="inference", raw={"content": block}))
     return items
