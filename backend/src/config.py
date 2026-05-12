@@ -1,4 +1,4 @@
-"""Configuration management for the Contract Assistant application.
+"""Configuration management for the AI Agent application.
 
 This module provides a centralized configuration system using TOML files.
 It handles loading configuration from config.toml and provides type-safe
@@ -61,7 +61,7 @@ class Settings:
 
         # App settings
         app_config = self._config.get("app", {})
-        self.app_name: str = app_config.get("name", "合同智能助手")
+        self.app_name: str = app_config.get("name", "AI 智能助手")
         self.app_host: str = app_config.get("host", "0.0.0.0")
         self.app_port: int = int(app_config.get("port", 8000))
 

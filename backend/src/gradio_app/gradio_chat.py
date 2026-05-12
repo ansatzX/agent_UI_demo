@@ -8,7 +8,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOTSPOT_SOURCES = ["知乎 MCP", "Jina DeepSearch"]
+DEFAULT_HOTSPOT_SOURCES = ["知乎 MCP", "Jina DeepSearch", "Web Search"]
 
 SYSTEM_PROMPT = """你是一个通用智能助手，可以使用工具帮助用户完成各种任务。
 
@@ -67,23 +67,6 @@ deep_research("问题") → 初始化约束清单
        │
        └→ check_state() 返回 "sufficient: true" → 综合输出
 
-```
-deep_research → [约束1:待验证, 约束2:待验证, ...]
-    │
-    ├→ web_search("约束1的搜索词")    → 更新约束1:🟡部分验证
-    ├→ web_search("约束2的搜索词")    → 更新约束2:🟢已验证
-    ├→ read_webpage(高价值URL)       → 加深验证
-    │
-    ├→ 识别缺口:
-    │   - 约束3仍为🔴 → 调整搜索词再搜
-    │   - 约束1仅有单一来源 → 补充第二个来源
-    │
-    ├→ web_search("补充查询")         → 约束1:🟢已验证, 约束3:🟡部分
-    │
-    └→ 所有关键约束≥🟡 → 综合输出
-       [claim] — tier: `xxx` — sources: [url1, url2]
-```
-
 **示例**：
 用户问："量子计算在药物发现中有什么最新应用？"
 1. deep_research → 5 constraints
@@ -113,15 +96,9 @@ class GradioChatHandler:
     def __init__(self, state: Any):
         self._state = state
         self._agent = None
-        # Share research state holder with tools (set by main.py lifespan)
         self._active_research = None
-        if hasattr(state, 'research_holder'):
-            state.research_holder._active_research = None
-            # Make handler._active_research an alias
         self._sessions: OrderedDict = OrderedDict()
         self._max_sessions = 100
-
-    # ── Lazy accessors ────────────────────────────────────────────────
 
     @property
     def _active_research(self):
@@ -201,42 +178,44 @@ class GradioChatHandler:
 
     # ── Hotspot scanning ───────────────────────────────────────────────
 
-    # ── Contract ────────────────────────────────────────────────
-
-    async def handle_contract(self, contract_file) -> str:
-        """Analyze uploaded contract template and return form/analysis."""
-        if contract_file is None:
-            return "请上传一个 .docx 合同模板。"
-        agent = self._get_agent()
-        context = {"uploaded_file": {"filename": contract_file, "original_filename": contract_file}}
-        result = await agent.run(
-            "请分析我上传的合同模板，识别所有 {{占位符}} 并生成填写表单。",
-            context, history=[],
-        )
-        return result.message
-
-
     async def scan_hotspots(self, keywords: str, limit: int, days: int, sources: list) -> tuple:
         from ..hotspots.workflow import render_topic_cards_markdown
 
         collectors = []
+        errors = []
         if "知乎 MCP" in (sources or []):
             collectors.append(self._rt["zhihu_collector"])
         if "Jina DeepSearch" in (sources or []):
             collectors.append(self._rt["jina_collector"])
+        if "Web Search" in (sources or []):
+            collectors.append(self._rt["web_collector"])
 
         if not collectors:
             return "请至少选择一个数据源。", self._history_markdown()
 
         workflow = self._rt["workflow"]
         workflow.collectors = collectors
-        cards = await workflow.scan(keywords=keywords, limit=limit, days=days)
+
+        try:
+            cards = await workflow.scan(keywords=keywords, limit=limit, days=days)
+        except Exception as exc:
+            logger.exception("Hotspot scan failed")
+            return f"巡检失败: {exc}", self._history_markdown()
+
+        if not cards:
+            return (
+                f"未找到相关选题（关键词: {keywords}，数据源: {', '.join(sources or [])}）。"
+                f"\n\n建议：调整关键词、扩大时间范围、或检查数据源连接状态。",
+                self._history_markdown(),
+            )
+
         markdown = render_topic_cards_markdown(cards)
 
-        self._rt["history_store"].save_run(
+        self._rt["history_store"].append_run(
             keywords=keywords,
             sources=list(sources or []),
-            cards=[c.__dict__ if hasattr(c, '__dict__') else c for c in cards],
+            markdown=markdown,
+            cards_count=len(cards),
         )
         return markdown, self._history_markdown()
 
@@ -267,16 +246,15 @@ class GradioChatHandler:
         lines = ["## 最近巡检记录"]
         for r in runs:
             rid = r.get("run_id", "")
-            ts = r.get("timestamp", "")
+            ts = r.get("created_at", "")
             kw = r.get("keywords", "")
             src = ", ".join(r.get("sources", []))
-            cnt = len(r.get("cards", []))
-            lines.append(f"- `{rid[:12]}...` {ts}: {kw} ({src}) — {cnt} 选题")
+            cnt = r.get("cards_count", 0)
+            lines.append(f"- `{rid[:16]}` {ts}: {kw} ({src}) — {cnt} 选题")
         return "\n".join(lines)
 
     def history_detail(self, run_id: str) -> str:
         run = self._rt["history_store"].get_run(run_id)
         if not run:
             return "未找到该巡检记录。"
-        cards = run.get("cards", [])
-        return self._rt["render"](cards) if cards else "该巡检记录无候选选题。"
+        return run.get("markdown", "该记录无内容。")

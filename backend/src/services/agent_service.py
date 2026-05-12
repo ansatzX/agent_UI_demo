@@ -1,17 +1,4 @@
-"""Agent service for handling conversational AI interactions.
-
-This module provides the AgentService class that orchestrates conversations
-between users and the AI agent, managing session state, tool execution,
-and response generation.
-
-Classes:
-    AgentService: Main service class for agent-based conversations.
-
-Example:
-    >>> from backend.src.services.agent_service import AgentService
-    >>> agent = AgentService(session, llm_service, ...)
-    >>> response = await agent.handle_message("帮我生成合同")
-"""
+"""Agent service — orchestrates ReAct agent conversations with tool execution."""
 
 import logging
 import time

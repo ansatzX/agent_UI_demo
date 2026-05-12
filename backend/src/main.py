@@ -1,4 +1,7 @@
-"""单一入口 — FastAPI + Gradio 合并运行时"""
+"""单一入口 — FastAPI + Gradio 统一运行时
+
+uv run agent-demo serve → http://0.0.0.0:8000
+"""
 
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -65,7 +68,8 @@ async def lifespan(app: FastAPI):
     tool_registry.register(GenerateDocumentTool(doc_generator, uploads_dir))
     tool_registry.register(ShowFormTool())
     tool_registry.register(SaveDocumentTool(uploads_dir))
-    tool_registry.register(WebSearchTool(llm_service=llm_service))
+    web_search_tool = WebSearchTool(llm_service=llm_service)
+    tool_registry.register(web_search_tool)
     # Shared research state holder accessible by both API and Gradio
     class _ResearchHolder:
         _active_research = None
@@ -96,6 +100,7 @@ async def lifespan(app: FastAPI):
     # ── Hotspot runtime ───────────────────────────────────────────────
     from .hotspots.analyzer import LLMTopicAnalyzer
     from .hotspots.collectors.jina_deepsearch import JinaDeepSearchCollector
+    from .hotspots.collectors.web_search_collector import WebSearchCollector
     from .hotspots.collectors.zhihu_mcp import ZhihuMCPCollector
     from .hotspots.profile import load_creator_profile
     from .hotspots.workflow import HotspotWorkflow, render_topic_cards_markdown
@@ -109,14 +114,15 @@ async def lifespan(app: FastAPI):
     jina_api_key = os.getenv("AIHUBMIX_API_KEY")
     jina_base = os.getenv("AIHUBMIX_BASE_URL", "https://aihubmix.com/v1")
     jina = JinaDeepSearchCollector(api_key=jina_api_key, base_url=jina_base)
+    web_collector = WebSearchCollector(web_search_tool)
     analyzer = LLMTopicAnalyzer(llm_service)
 
     hotspot_workflow = HotspotWorkflow(
         profile=profile,
-        collectors=[zhihu, jina],
+        collectors=[zhihu, jina, web_collector],
         analyzer=analyzer,
         llm_service=llm_service,
-        web_search=WebSearchTool(llm_service=llm_service),
+        web_search=web_search_tool,
     )
 
     history_store = HotspotHistoryStore(
@@ -127,6 +133,7 @@ async def lifespan(app: FastAPI):
         "profile": profile,
         "zhihu_collector": zhihu,
         "jina_collector": jina,
+        "web_collector": web_collector,
         "analyzer": analyzer,
         "workflow": hotspot_workflow,
         "render": render_topic_cards_markdown,

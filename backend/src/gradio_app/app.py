@@ -1,4 +1,4 @@
-"""Gradio UI — single unified interface for all features."""
+"""Gradio UI — 对话 / 合同 / 热点巡检 / 设置"""
 
 from __future__ import annotations
 

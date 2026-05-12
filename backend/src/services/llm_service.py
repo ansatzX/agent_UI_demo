@@ -1,4 +1,4 @@
-"""LLM 服务（扩展通用框架，增加合同领域方法）"""
+"""LLM 服务 — 通用对话 + 合同分析 + 模板处理"""
 
 import json
 import logging
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService(BaseLLMService):
-    """扩展 LLM 服务（增加合同审查、模板分析等领域方法）"""
+    """扩展 LLM 服务 — 合同审查、模板分析"""
 
     def __init__(self):
         model = settings.llm_model
@@ -141,7 +141,7 @@ class LLMService(BaseLLMService):
                     context_parts.append(f"当前合同: {contract_context.get('name', '未命名')}")
                     context_parts.append(f"合同状态: {contract_context.get('status', 'draft')}")
 
-            system_prompt = """你是一个友好的企业合同智能助手，专门帮助用户处理合同相关工作。
+            system_prompt = """你是一个智能助手，可以处理合同、写作、研究和信息查询。
 
 你的职责：
 1. 理解用户的意图，提供专业的帮助
