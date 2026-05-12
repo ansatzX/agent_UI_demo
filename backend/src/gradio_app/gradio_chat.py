@@ -181,7 +181,7 @@ class GradioChatHandler:
     async def scan_hotspots(self, keywords: str, limit: int, days: int) -> tuple:
         from ..hotspots.workflow import render_topic_cards_markdown
 
-        web = self._rt.get("web_collector")
+        web = self._rt.get("llm_collector")
         collectors = [web] if web else []
 
         if not collectors:

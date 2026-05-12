@@ -100,7 +100,7 @@ async def lifespan(app: FastAPI):
     # ── Hotspot runtime ───────────────────────────────────────────────
     from .hotspots.analyzer import LLMTopicAnalyzer
     from .hotspots.collectors.jina_deepsearch import JinaDeepSearchCollector
-    from .hotspots.collectors.web_search_collector import WebSearchCollector
+    from .hotspots.collectors.llm_collector import LLMCollector
     from .hotspots.profile import default_creator_profile
     from .hotspots.workflow import HotspotWorkflow, render_topic_cards_markdown
     from .hotspots.history import HotspotHistoryStore
@@ -111,8 +111,8 @@ async def lifespan(app: FastAPI):
     jina_api_key = os.getenv("AIHUBMIX_API_KEY")
     jina_base = os.getenv("AIHUBMIX_BASE_URL", "https://aihubmix.com/v1")
     jina = JinaDeepSearchCollector(api_key=jina_api_key, base_url=jina_base)
-    web_collector = WebSearchCollector(web_search_tool)
-    collectors = [web_collector]
+    llm_collector = LLMCollector(llm_service)
+    collectors = [llm_collector]
     analyzer = LLMTopicAnalyzer(llm_service)
 
     hotspot_workflow = HotspotWorkflow(
@@ -129,7 +129,7 @@ async def lifespan(app: FastAPI):
 
     app.state.hotspot_runtime = {
         "profile": profile,
-        "web_collector": web_collector,
+        "llm_collector": llm_collector,
         "analyzer": analyzer,
         "workflow": hotspot_workflow,
         "render": render_topic_cards_markdown,
