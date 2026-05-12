@@ -101,25 +101,23 @@ async def lifespan(app: FastAPI):
     from .hotspots.analyzer import LLMTopicAnalyzer
     from .hotspots.collectors.jina_deepsearch import JinaDeepSearchCollector
     from .hotspots.collectors.web_search_collector import WebSearchCollector
-    from .hotspots.collectors.zhihu_mcp import ZhihuMCPCollector
-    from .hotspots.profile import load_creator_profile
+    from .hotspots.profile import default_creator_profile
     from .hotspots.workflow import HotspotWorkflow, render_topic_cards_markdown
     from .hotspots.history import HotspotHistoryStore
     from .agent_framework.mcp_config import load_mcp_server_configs
 
-    profile_path = settings.project_root / "backend" / "config" / "hotspot_profile.toml"
-    profile = load_creator_profile(profile_path)
+    profile = default_creator_profile()
 
-    zhihu = ZhihuMCPCollector(mcp_bridge, server_name="zhihu")
     jina_api_key = os.getenv("AIHUBMIX_API_KEY")
     jina_base = os.getenv("AIHUBMIX_BASE_URL", "https://aihubmix.com/v1")
     jina = JinaDeepSearchCollector(api_key=jina_api_key, base_url=jina_base)
     web_collector = WebSearchCollector(web_search_tool)
+    collectors = [web_collector]
     analyzer = LLMTopicAnalyzer(llm_service)
 
     hotspot_workflow = HotspotWorkflow(
         profile=profile,
-        collectors=[zhihu, jina, web_collector],
+        collectors=collectors,
         analyzer=analyzer,
         llm_service=llm_service,
         web_search=web_search_tool,
@@ -131,8 +129,6 @@ async def lifespan(app: FastAPI):
 
     app.state.hotspot_runtime = {
         "profile": profile,
-        "zhihu_collector": zhihu,
-        "jina_collector": jina,
         "web_collector": web_collector,
         "analyzer": analyzer,
         "workflow": hotspot_workflow,

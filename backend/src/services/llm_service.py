@@ -25,6 +25,8 @@ class LLMService(BaseLLMService):
     def _get_api_key(self, model: str) -> Optional[str]:
         if model.startswith("deepseek/"):
             return settings.deepseek_api_key or os.getenv("DEEPSEEK_API_KEY")
+        elif model.startswith("openai/"):
+            return os.getenv("AIHUBMIX_API_KEY") or settings.get_provider_api_key("aihubmix")
         elif model.startswith("volcengine_coding_plan/"):
             return (
                 settings.get_provider_api_key("volcengine_coding_plan")
@@ -44,6 +46,8 @@ class LLMService(BaseLLMService):
     def _get_api_base(self, model: str) -> Optional[str]:
         if model.startswith("deepseek/"):
             return settings.deepseek_base_url or os.getenv("DEEPSEEK_BASE_URL")
+        elif model.startswith("openai/"):
+            return os.getenv("AIHUBMIX_BASE_URL", "https://aihubmix.com/v1") or settings.get_provider_api_base("aihubmix")
         elif model.startswith("volcengine_coding_plan/"):
             return settings.get_provider_api_base("volcengine_coding_plan") or os.getenv(
                 "VOLC_CODING_PLAN_BASE_URL"

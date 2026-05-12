@@ -56,14 +56,8 @@ def create_gradio_blocks(app_state) -> gr.Blocks:
                     keywords = gr.Textbox(label="巡检关键词", value="社会热点 科技产业 国际关系", scale=6)
                     limit = gr.Number(label="结果数量", value=10, precision=0, scale=1)
                     days = gr.Number(label="天数", value=1, precision=0, scale=1)
-                sources = gr.CheckboxGroup(
-                    label="数据源", choices=DEFAULT_HOTSPOT_SOURCES, value=DEFAULT_HOTSPOT_SOURCES,
-                )
-                with gr.Row():
-                    scan_btn = gr.Button("开始巡检", variant="primary")
-                    connect_btn = gr.Button("重连 MCP", variant="secondary", size="sm")
+                scan_btn = gr.Button("开始巡检", variant="primary")
                 output = gr.Markdown(label="巡检进度与候选选题")
-                mcp_status = gr.Markdown(value="加载中...", label="MCP 状态")
                 gr.Markdown("### 巡检历史")
                 history_md = gr.Markdown(value="加载中...", label="最近巡检记录")
                 refresh_btn = gr.Button("刷新历史", variant="secondary", size="sm")
@@ -73,10 +67,9 @@ def create_gradio_blocks(app_state) -> gr.Blocks:
                 detail = gr.Markdown(label="历史详情")
 
                 scan_btn.click(
-                    fn=handler.scan_hotspots, inputs=[keywords, limit, days, sources],
+                    fn=handler.scan_hotspots, inputs=[keywords, limit, days],
                     outputs=[output, history_md],
                 )
-                connect_btn.click(fn=handler.connect_mcp, outputs=mcp_status)
                 refresh_btn.click(fn=lambda: handler._history_markdown(), outputs=history_md)
                 load_btn.click(fn=handler.history_detail, inputs=run_id, outputs=detail)
 

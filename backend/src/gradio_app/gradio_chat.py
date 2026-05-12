@@ -8,7 +8,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOTSPOT_SOURCES = ["知乎 MCP", "Jina DeepSearch", "Web Search"]
+DEFAULT_HOTSPOT_SOURCES = ["Web Search"]
 
 SYSTEM_PROMPT = """你是一个通用智能助手，可以使用工具帮助用户完成各种任务。
 
@@ -178,17 +178,11 @@ class GradioChatHandler:
 
     # ── Hotspot scanning ───────────────────────────────────────────────
 
-    async def scan_hotspots(self, keywords: str, limit: int, days: int, sources: list) -> tuple:
+    async def scan_hotspots(self, keywords: str, limit: int, days: int) -> tuple:
         from ..hotspots.workflow import render_topic_cards_markdown
 
-        collectors = []
-        errors = []
-        if "知乎 MCP" in (sources or []):
-            collectors.append(self._rt["zhihu_collector"])
-        if "Jina DeepSearch" in (sources or []):
-            collectors.append(self._rt["jina_collector"])
-        if "Web Search" in (sources or []):
-            collectors.append(self._rt["web_collector"])
+        web = self._rt.get("web_collector")
+        collectors = [web] if web else []
 
         if not collectors:
             return "请至少选择一个数据源。", self._history_markdown()
