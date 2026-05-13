@@ -1,8 +1,8 @@
 import pytest
 
-from backend.src.hotspots.models import SourceItem
-from backend.src.hotspots.profile import default_creator_profile
-from backend.src.hotspots.workflow import HotspotWorkflow, render_topic_cards_markdown
+from src.hotspots.models import SourceItem
+from src.hotspots.profile import default_creator_profile
+from src.hotspots.workflow import HotspotWorkflow, render_topic_cards_markdown
 
 
 @pytest.mark.asyncio
@@ -31,7 +31,7 @@ async def test_workflow_dedupes_scores_and_renders_topic_cards():
 
     assert len(cards) == 1
     assert cards[0].score.total > 0
-    assert "为什么适合热点选题" in cards[0].creator_fit
+    assert "讨论和讲述空间" in cards[0].creator_fit
     assert "```mermaid" in markdown
     assert "中美科技公司" in markdown
     assert "https://example.com/a" in markdown

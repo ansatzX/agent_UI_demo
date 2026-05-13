@@ -4,15 +4,17 @@
 """
 
 from .agent import ReActAgent, AgentResult
-from .llm import LLMService
+from .llm import BaseLLMService
+from .llm import LLMService  # backward compat alias
 from .mcp_bridge import MCPBridge, MCPServerConfig, MCPToolResult
 from .session import SessionService
 from .tool_registry import ToolRegistry, ToolNotFoundError
-from .tools.base import Tool, ToolResult
+from ..services.tools.base import Tool, ToolResult
 
 __all__ = [
     "ReActAgent",
     "AgentResult",
+    "BaseLLMService",
     "LLMService",
     "ToolRegistry",
     "ToolNotFoundError",

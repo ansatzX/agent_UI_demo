@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from ..agent_framework.llm import LLMService as BaseLLMService
+from ..agent_framework.llm import BaseLLMService
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -22,41 +22,42 @@ class LLMService(BaseLLMService):
         if model.startswith("volcengine/") and api_key:
             os.environ["OPENAI_API_KEY"] = api_key
 
-    def _get_api_key(self, model: str) -> Optional[str]:
-        if model.startswith("deepseek/"):
-            return settings.deepseek_api_key or os.getenv("DEEPSEEK_API_KEY")
-        elif model.startswith("openai/"):
-            return os.getenv("AIHUBMIX_API_KEY") or settings.get_provider_api_key("aihubmix")
-        elif model.startswith("volcengine_coding_plan/"):
-            return (
-                settings.get_provider_api_key("volcengine_coding_plan")
-                or os.getenv("VOLC_CODING_PLAN_API_KEY")
-                or os.getenv("OPENAI_API_KEY")
-            )
-        elif model.startswith("volcengine/") or model.startswith("doubao/"):
-            return (
-                settings.volc_api_key
-                or os.getenv("VOLC_API_KEY")
-                or os.getenv("OPENAI_API_KEY")
-            )
-        elif model.startswith("anthropic/"):
-            return settings.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
+    # Provider registry: (prefix, provider_name, api_key_env, base_url_env, default_base)
+    _PROVIDERS = [
+        ("volcengine_coding_plan/", "volcengine_coding_plan", "VOLC_CODING_PLAN_API_KEY", "VOLC_CODING_PLAN_BASE_URL", None),
+        ("volcengine/",            "volcengine",           "VOLC_API_KEY",            "VOLC_BASE_URL",             None),
+        ("doubao/",                "volcengine",           "VOLC_API_KEY",            "VOLC_BASE_URL",             None),
+        ("openai/",                "aihubmix",             "AIHUBMIX_API_KEY",        "AIHUBMIX_BASE_URL",         "https://aihubmix.com/v1"),
+        ("deepseek/",              "deepseek",             "DEEPSEEK_API_KEY",        "DEEPSEEK_BASE_URL",         None),
+        ("anthropic/",             "anthropic",            "ANTHROPIC_API_KEY",       "ANTHROPIC_BASE_URL",        None),
+    ]
+
+    def _resolve_provider(self, model: str) -> Optional[tuple]:
+        for prefix, provider, api_key_env, base_url_env, default_base in self._PROVIDERS:
+            if model.startswith(prefix):
+                return provider, api_key_env, base_url_env, default_base
         return None
 
+    def _get_api_key(self, model: str) -> Optional[str]:
+        resolved = self._resolve_provider(model)
+        if not resolved:
+            return None
+        provider, api_key_env, _, _ = resolved
+        return (
+            settings.get_provider_api_key(provider)
+            or os.getenv(api_key_env)
+        )
+
     def _get_api_base(self, model: str) -> Optional[str]:
-        if model.startswith("deepseek/"):
-            return settings.deepseek_base_url or os.getenv("DEEPSEEK_BASE_URL")
-        elif model.startswith("openai/"):
-            return os.getenv("AIHUBMIX_BASE_URL", "https://aihubmix.com/v1") or settings.get_provider_api_base("aihubmix")
-        elif model.startswith("volcengine_coding_plan/"):
-            return settings.get_provider_api_base("volcengine_coding_plan") or os.getenv(
-                "VOLC_CODING_PLAN_BASE_URL"
-            )
-        elif model.startswith("volcengine/") or model.startswith("doubao/"):
-            return settings.volc_base_url or os.getenv("VOLC_BASE_URL")
-        elif model.startswith("anthropic/"):
-            return settings.anthropic_base_url or os.getenv("ANTHROPIC_BASE_URL")
-        return None
+        resolved = self._resolve_provider(model)
+        if not resolved:
+            return None
+        provider, _, base_url_env, default_base = resolved
+        return (
+            settings.get_provider_api_base(provider)
+            or os.getenv(base_url_env)
+            or default_base
+        )
 
     def _get_litellm_params(self, messages, max_tokens=1024):
         return super()._get_litellm_params(messages, max_tokens)

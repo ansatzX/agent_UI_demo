@@ -8,11 +8,13 @@ from datetime import datetime
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,8 +73,12 @@ async def lifespan(app: FastAPI):
     web_search_tool = WebSearchTool(llm_service=llm_service)
     tool_registry.register(web_search_tool)
     # Shared research state holder accessible by both API and Gradio
+    from dataclasses import dataclass, field
+
+    @dataclass
     class _ResearchHolder:
-        _active_research = None
+        _active_research: Any = field(default=None, repr=False)
+
     research_holder = _ResearchHolder()
     app.state.research_holder = research_holder
 
@@ -96,6 +102,15 @@ async def lifespan(app: FastAPI):
     from .agent_framework.mcp_bridge import MCPBridge
     mcp_bridge = MCPBridge()
     app.state.mcp_bridge = mcp_bridge
+
+    # Load MCP server configs and connect
+    mcp_config_path = settings.project_root / "backend" / "mcp_config.json"
+    mcp_configs = load_mcp_server_configs(mcp_config_path)
+    for cfg in mcp_configs:
+        await mcp_bridge.register(cfg)
+    if mcp_configs:
+        await mcp_bridge.connect_all()
+        logger.info("MCP 服务器已连接: %s", [c.name for c in mcp_configs])
 
     # ── Hotspot runtime ───────────────────────────────────────────────
     from .hotspots.analyzer import LLMTopicAnalyzer
@@ -141,6 +156,14 @@ async def lifespan(app: FastAPI):
     logger.info("统一运行时启动完成")
     yield
 
+    # Graceful shutdown: disconnect MCP servers
+    mcp_bridge = getattr(app.state, "mcp_bridge", None)
+    if mcp_bridge:
+        try:
+            await mcp_bridge.disconnect_all()
+        except Exception:
+            pass
+
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
@@ -151,7 +174,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"未处理异常: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"message": "服务器内部错误", "error": str(exc), "path": str(request.url)},
+        content={"message": "服务器内部错误", "error": type(exc).__name__},
     )
 
 @app.exception_handler(TimeoutError)
@@ -181,12 +204,28 @@ app.include_router(files_router, prefix="/api")
 
 
 @app.get("/health")
-def health():
+async def health():
+    checks = {}
+    # Database
+    try:
+        from .database import engine
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception:
+        checks["database"] = "error"
+    # LLM
+    try:
+        llm = getattr(app.state, "llm_service", None)
+        checks["llm"] = "ok" if llm and getattr(llm, "api_key", None) else "no_key"
+    except Exception:
+        checks["llm"] = "error"
+    status = "ok" if all(v == "ok" for v in checks.values()) else "degraded"
     return {
-        "status": "ok",
+        "status": status,
         "timestamp": datetime.now().isoformat(),
         "version": "0.1.0",
-        "components": {"database": "ok", "llm": "ok"},
+        "components": checks,
     }
 
 @app.get("/health/ready")
@@ -195,7 +234,7 @@ async def readiness_check(request: Request):
     try:
         from .database import engine
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         checks["database"] = True
     except Exception as e:
         logger.error(f"数据库健康检查失败: {e}")
@@ -232,4 +271,3 @@ try:
     logger.info("Gradio 已挂载到 /")
 except Exception as exc:
     logger.warning("Gradio 挂载失败: %s", exc)
-

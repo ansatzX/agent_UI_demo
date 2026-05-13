@@ -1,6 +1,6 @@
 import json
 
-from backend.src.agent_framework.mcp_config import load_mcp_server_configs
+from src.agent_framework.mcp_config import load_mcp_server_configs
 
 
 def test_loads_claude_style_mcp_servers(tmp_path):

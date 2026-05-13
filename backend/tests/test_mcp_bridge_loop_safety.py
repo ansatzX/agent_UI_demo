@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from backend.src.agent_framework.mcp_bridge import MCPBridge, MCPServerConfig, MCPServerConnection
+from src.agent_framework.mcp_bridge import MCPBridge, MCPServerConfig, MCPServerConnection
 
 
 class FakeProcess:

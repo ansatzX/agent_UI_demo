@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from .tools.base import Tool, ToolResult
+from ..services.tools.base import Tool, ToolResult
 
 
 class ToolNotFoundError(Exception):

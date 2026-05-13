@@ -1,7 +1,7 @@
 # backend/tests/test_tool_registry.py
 import pytest
-from backend.src.services.tools.base import Tool, ToolResult
-from backend.src.agent_framework.tool_registry import ToolRegistry
+from src.services.tools.base import Tool, ToolResult
+from src.agent_framework.tool_registry import ToolRegistry
 
 class MockTool(Tool):
     name = "mock_tool"

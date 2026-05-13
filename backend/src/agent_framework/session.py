@@ -4,6 +4,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,17 @@ class SessionService:
         self.sessions_dir = sessions_dir or Path("sessions")
         self.sessions_dir.mkdir(exist_ok=True)
         self.session_ttl = timedelta(hours=ttl_hours)
-        asyncio.create_task(self._cleanup_expired_sessions())
+        self._cleanup_task: Optional[asyncio.Task] = None
+
+    def _ensure_cleanup_task(self) -> None:
+        """Lazily start background cleanup on first use in an event loop."""
+        if self._cleanup_task is not None:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._cleanup_task = loop.create_task(self._cleanup_expired_sessions())
 
     def _get_session_file(self, session_id: str) -> Path:
         return self.sessions_dir / f"{session_id}.jsonl"
@@ -24,7 +35,7 @@ class SessionService:
         return self.sessions_dir / f"{session_id}_metadata.json"
 
     def create_session(self) -> str:
-        session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid4().hex[:8]
         self._get_session_file(session_id).touch()
         return session_id
 
@@ -94,6 +105,7 @@ class SessionService:
         return deleted
 
     def get_or_create_session(self, session_id: Optional[str] = None) -> str:
+        self._ensure_cleanup_task()
         if session_id:
             session_file = self._get_session_file(session_id)
             if session_file.exists() and not self.is_session_expired(session_id):

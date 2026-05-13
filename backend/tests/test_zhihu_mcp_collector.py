@@ -1,6 +1,6 @@
 import pytest
 
-from backend.src.hotspots.collectors.zhihu_mcp import ZhihuMCPCollector
+from src.hotspots.collectors.zhihu_mcp import ZhihuMCPCollector
 
 
 class Result:

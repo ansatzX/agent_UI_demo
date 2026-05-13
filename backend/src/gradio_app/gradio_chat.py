@@ -192,22 +192,24 @@ class GradioChatHandler:
 
         try:
             cards = await workflow.scan(keywords=keywords, limit=limit, days=days)
-        except Exception as exc:
+        except Exception:
             logger.exception("Hotspot scan failed")
-            return f"巡检失败: {exc}", self._history_markdown()
+            return "巡检失败，请查看日志。", self._history_markdown()
 
         if not cards:
+            collector_names = [c.__class__.__name__ for c in collectors]
             return (
-                f"未找到相关选题（关键词: {keywords}，数据源: {', '.join(sources or [])}）。"
+                f"未找到相关选题（关键词: {keywords}，数据源: {', '.join(collector_names)}）。"
                 f"\n\n建议：调整关键词、扩大时间范围、或检查数据源连接状态。",
                 self._history_markdown(),
             )
 
         markdown = render_topic_cards_markdown(cards)
 
+        collector_names = [c.__class__.__name__ for c in collectors]
         self._rt["history_store"].append_run(
             keywords=keywords,
-            sources=list(sources or []),
+            sources=collector_names,
             markdown=markdown,
             cards_count=len(cards),
         )
@@ -220,15 +222,15 @@ class GradioChatHandler:
         return self._mcp_status()
 
     def _mcp_status(self) -> str:
-        st = self._mcp.get_all_status()
-        if not st:
+        servers = self._mcp.list_servers()
+        if not servers:
             return "暂无 MCP 服务器。"
         lines = ["## MCP 状态"]
-        for name, info in sorted(st.items()):
+        for info in servers:
             icon = "✅" if info.get("connected") else "❌"
-            tools = info.get("tools", [])
-            tnames = ", ".join(t.get("name", "") for t in tools[:5]) if tools else "无"
-            lines.append(f"- {icon} **{name}**: {'已连接' if info.get('connected') else '未连接'} (工具: {tnames})")
+            name = info.get("name", "")
+            status = info.get("status", "未知")
+            lines.append(f"- {icon} **{name}**: {status}")
         return "\n".join(lines)
 
     # ── History ────────────────────────────────────────────────────────

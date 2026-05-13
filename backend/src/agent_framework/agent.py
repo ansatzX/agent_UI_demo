@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from .llm import LLMService
+from .llm import BaseLLMService
 from .tool_registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class ReActAgent:
 
     def __init__(
         self,
-        llm_service: LLMService,
+        llm_service: BaseLLMService,
         tool_registry: ToolRegistry,
         system_prompt: Optional[str] = None,
         max_iterations: int = 10,

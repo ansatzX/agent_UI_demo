@@ -33,3 +33,8 @@ origins = ["http://localhost:5173", "http://localhost:3000"]
 [research]
 max_results_per_query = 10
 min_sources_for_claim = 2
+
+# Bing Web Search API (可选，不配置则用 HTML 抓取)
+# 申请地址: https://portal.azure.com → 搜索 "Bing Search v7"
+[bing]
+api_key = "BING_API_KEY"

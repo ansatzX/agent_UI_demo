@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 from typing import List, Optional
 
@@ -31,8 +32,6 @@ class TemplateService:
 
         fields = await self.analyze_template_fields(file_content)
         if fields:
-            import json
-
             template.field_config = json.dumps(
                 [f.model_dump() for f in fields], ensure_ascii=False
             )

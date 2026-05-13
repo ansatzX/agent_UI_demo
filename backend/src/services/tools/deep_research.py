@@ -8,6 +8,7 @@ The ReAct loop drives the actual research.
 from __future__ import annotations
 
 import logging
+import re
 from enum import Enum
 from typing import Any
 
@@ -138,7 +139,6 @@ Leave Status blank (🟢🟡🔴 to be filled after searching)."""
 
     def _parse_state(self, query: str, text: str) -> ResearchState:
         """Attempt to parse constraint list into a ResearchState."""
-        import re
         state = ResearchState(query=query)
         lines = text.split("\n")
         for line in lines:

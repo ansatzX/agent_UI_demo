@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json as _json
 from typing import TYPE_CHECKING
+
+from json_repair import repair_json
 
 from ..models import SourceItem
 
@@ -45,8 +48,6 @@ class LLMCollector:
             )
             content = resp.get("content", "[]")
 
-            import json as _json
-            from json_repair import repair_json
             start = content.find("[")
             end = content.rfind("]") + 1
             if start < 0 or end <= start:

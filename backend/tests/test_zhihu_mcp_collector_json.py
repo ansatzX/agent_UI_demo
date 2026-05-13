@@ -1,4 +1,4 @@
-from backend.src.hotspots.collectors.zhihu_mcp import _parse_zhihu_text
+from src.hotspots.collectors.zhihu_mcp import _parse_zhihu_text
 
 
 def test_parse_zhihu_json_data_items():

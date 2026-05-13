@@ -1,8 +1,9 @@
 import pytest
+from unittest.mock import AsyncMock
 
-from backend.src.hotspots.models import SourceItem
-from backend.src.hotspots.profile import default_creator_profile
-from backend.src.hotspots.workflow import HotspotWorkflow
+from src.hotspots.models import SourceItem
+from src.hotspots.profile import default_creator_profile
+from src.hotspots.workflow import HotspotWorkflow
 
 
 class FakeAnalyzer:
@@ -24,7 +25,12 @@ class FakeAnalyzer:
 @pytest.mark.asyncio
 async def test_workflow_uses_llm_analyzer_for_topic_cards():
     analyzer = FakeAnalyzer()
-    workflow = HotspotWorkflow(profile=default_creator_profile(), collectors=[], analyzer=analyzer)
+    fake_llm = AsyncMock()
+    fake_llm.generate_response = AsyncMock(return_value={"content": "[]"})
+    workflow = HotspotWorkflow(
+        profile=default_creator_profile(), collectors=[],
+        analyzer=analyzer, llm_service=fake_llm,
+    )
 
     cards = await workflow.build_topic_cards([
         SourceItem(source="zhihu", title="科技产业争议", summary="摘要", heat=0.8)

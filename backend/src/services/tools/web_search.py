@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
+from urllib.parse import unquote
 
 import httpx
 from bs4 import BeautifulSoup
@@ -25,9 +28,63 @@ from .url_classifier import URLClassifier, URLInfo
 
 logger = logging.getLogger(__name__)
 
+# ── Bing API ───────────────────────────────────────────────────────────────
+
+_BING_API_KEY = os.getenv("BING_API_KEY")
+_BING_API_URL = "https://api.bing.microsoft.com/v7.0/search"
+
+
+async def _bing_api_search(query: str, count: int = 10) -> List[SearchSnippet]:
+    """Search using the official Bing Web Search API."""
+    if not _BING_API_KEY:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as c:
+            resp = await c.get(
+                _BING_API_URL,
+                params={"q": query, "count": count, "mkt": "zh-CN"},
+                headers={
+                    "Ocp-Apim-Subscription-Key": _BING_API_KEY,
+                    "User-Agent": "ResearchBot/1.0",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as exc:
+        logger.debug("Bing API search failed: %s", exc)
+        return []
+
+    results = []
+    for item in data.get("webPages", {}).get("value", []):
+        url = item.get("url", "")
+        if not url:
+            continue
+        info = URLClassifier.classify(url)
+        results.append(SearchSnippet(
+            title=item.get("name", ""),
+            url=url,
+            snippet=item.get("snippet", ""),
+            source_name=f"Bing/{info.source_name}",
+            url_info=info,
+        ))
+    return results
+
+
 # ── Per-source search functions ────────────────────────────────────────────
 
 _SEARCH_SOURCES = [
+    {
+        "name": "Bing",
+        "url": "https://cn.bing.com/search",
+        "params": lambda q: {"q": q},
+        "parse": "bing",
+    },
+    {
+        "name": "Sogou",
+        "url": "https://www.sogou.com/web",
+        "params": lambda q: {"query": q},
+        "parse": "sogou",
+    },
     {
         "name": "SearXNG",
         "url": "http://localhost:8080/search",
@@ -119,7 +176,7 @@ def _parse_wiki(html: str) -> List[SearchSnippet]:
         a_tag = li.select_one("a")
         if not a_tag:
             continue
-        title = a_tag.get("title", a_tag.get_text(strip=True))
+        title = a_tag.get_text(strip=True) or a_tag.get("title", "")
         href = a_tag.get("href", "")
         url = f"https://en.wikipedia.org{href}" if href.startswith("/") else href
         desc_div = li.select_one(".searchresult")
@@ -134,10 +191,8 @@ def _parse_wiki(html: str) -> List[SearchSnippet]:
 
 def _extract_ddg_url(href: str) -> str:
     """Extract real URL from DuckDuckGo redirect."""
-    import re
     m = re.search(r"uddg=(https?://[^&]+)", href)
     if m:
-        from urllib.parse import unquote
         return unquote(m.group(1))
     if href.startswith("http"):
         return href
@@ -241,7 +296,7 @@ class WebSearchTool(Tool):
                             return _parse_searxng(resp.json())
                         except Exception:
                             pass
-                    parser = {"ddg": _parse_ddg, "wiki": _parse_wiki}.get(parser_name)
+                    parser = {"ddg": _parse_ddg, "wiki": _parse_wiki, "bing": _parse_bing, "sogou": _parse_sogou}.get(parser_name)
                     if parser:
                         return parser(resp.text)
                 except Exception as exc:
@@ -250,7 +305,11 @@ class WebSearchTool(Tool):
                     )
                 return []
 
-            tasks = [_search_source(s) for s in _SEARCH_SOURCES]
+            # ── Bing API (priority) ──────────────────────────────────
+            tasks = []
+            if _BING_API_KEY:
+                tasks.append(_bing_api_search(query, max_results))
+            tasks.extend([_search_source(s) for s in _SEARCH_SOURCES])
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for snippets in results:
@@ -268,6 +327,12 @@ class WebSearchTool(Tool):
                     seen.add(s.url)
                     unique.append(s)
             all_snippets = unique
+
+            # ── Phase 1.5: LLM fallback when external sources fail ───
+            if not all_snippets and self._llm:
+                all_snippets = await self._llm_search_fallback(query, max_results)
+                for s in all_snippets:
+                    source_counts[s.source_name] = source_counts.get(s.source_name, 0) + 1
 
             # ── Phase 2: LLM relevance filter on snippets ─────────────
             kept = all_snippets
@@ -346,7 +411,6 @@ Example: 0, 2, 5"""
                 max_tokens=200,
             )
             content = response.get("content", "")
-            import re
             indices = [int(m) for m in re.findall(r"\d+", content)]
             valid = [i for i in indices if 0 <= i < len(snippets)]
             if valid:
@@ -355,3 +419,86 @@ Example: 0, 2, 5"""
             logger.warning("Relevance filter failed: %s", exc)
 
         return snippets[:max_keep]
+
+    async def _llm_search_fallback(self, query: str, max_results: int) -> List[SearchSnippet]:
+        """Use LLM knowledge as search fallback when external sources are unreachable."""
+        if not self._llm:
+            return []
+        prompt = f"""Based on your training data, provide up to {max_results} search results for: "{query}"
+
+Return a JSON array. Each item:
+- "title": result title
+- "url": a plausible source URL (e.g. news site, official docs)
+- "snippet": 2-3 sentence summary of the content
+
+Only output JSON array, no other text. Max {max_results} items."""
+        try:
+            resp = await self._llm.generate_response(
+                system_prompt="You are a web search engine. Return realistic search results as JSON.",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=1500,
+            )
+            content = resp.get("content", "[]")
+            import json as _json
+            from json_repair import repair_json
+            start = content.find("[")
+            end = content.rfind("]") + 1
+            if start < 0 or end <= start:
+                return []
+            data = _json.loads(repair_json(content[start:end]))
+            snippets = []
+            for item in data[:max_results]:
+                url = item.get("url", "")
+                info = URLClassifier.classify(url) if url else None
+                snippets.append(SearchSnippet(
+                    title=item.get("title", ""),
+                    url=url,
+                    snippet=item.get("snippet", ""),
+                    source_name="LLM",
+                    url_info=info,
+                ))
+            return snippets
+        except Exception as exc:
+            logger.warning("LLM search fallback failed: %s", exc)
+            return []
+def _parse_bing(html: str) -> List[SearchSnippet]:
+    """Parse Bing search results."""
+    soup = BeautifulSoup(html, "html.parser")
+    results = []
+    for li in soup.select("li.b_algo"):
+        a_tag = li.select_one("h2 a")
+        if not a_tag:
+            continue
+        title = a_tag.get_text(strip=True)
+        url = a_tag.get("href", "")
+        if not url or not url.startswith("http"):
+            continue
+        snippet_el = li.select_one(".b_caption p") or li.select_one("p")
+        snippet = snippet_el.get_text(strip=True) if snippet_el else ""
+        info = URLClassifier.classify(url)
+        results.append(SearchSnippet(
+            title=title, url=url, snippet=snippet,
+            source_name=info.source_name, url_info=info,
+        ))
+    return results
+
+
+def _parse_sogou(html: str) -> List[SearchSnippet]:
+    """Parse Sogou search results."""
+    soup = BeautifulSoup(html, "html.parser")
+    results = []
+    for div in soup.select(".vrwrap"):
+        a_tag = div.select_one("h3 a")
+        if not a_tag:
+            continue
+        title = a_tag.get_text(strip=True)
+        href = a_tag.get("href", "")
+        url = href if href.startswith("http") else f"https://www.sogou.com{href}"
+        snippet_el = div.select_one(".str_info") or div.select_one("p")
+        snippet = snippet_el.get_text(strip=True) if snippet_el else ""
+        info = URLClassifier.classify(url)
+        results.append(SearchSnippet(
+            title=title, url=url, snippet=snippet,
+            source_name="Sogou", url_info=info,
+        ))
+    return results

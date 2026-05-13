@@ -1,4 +1,4 @@
-from backend.src.hotspots.history import HotspotHistoryStore
+from src.hotspots.history import HotspotHistoryStore
 
 
 def test_hotspot_history_store_appends_and_lists_runs(tmp_path):

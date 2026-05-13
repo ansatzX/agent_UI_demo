@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
 from json_repair import repair_json
@@ -11,8 +10,8 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 logger = logging.getLogger(__name__)
 
 
-class LLMService:
-    """通用 LLM 服务（基于 LiteLLM，支持多 Provider）"""
+class BaseLLMService:
+    """通用 LLM 服务基类（基于 LiteLLM，支持多 Provider）"""
 
     def __init__(
         self,
@@ -100,8 +99,9 @@ class LLMService:
             params = self._get_litellm_params(
                 messages=messages, max_tokens=1024
             )
-            params["tools"] = tools
-            params["tool_choice"] = "auto"
+            if tools:
+                params["tools"] = tools
+                params["tool_choice"] = "auto"
 
             response = await self._call_llm_with_retry(params)
             message = response.choices[0].message
@@ -130,3 +130,7 @@ class LLMService:
         except Exception as e:
             logger.error(f"生成ReAct响应失败: {e}", exc_info=True)
             return {"content": "抱歉，处理您的请求时出现错误。", "tool_calls": []}
+
+
+# Backward-compatible alias
+LLMService = BaseLLMService

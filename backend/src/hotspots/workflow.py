@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import json as _json
 import logging
 from typing import Iterable, List, Sequence
+
+from json_repair import repair_json
 
 from .models import CreatorProfile, SourceItem, TopicCard, TopicScore
 from .profile import default_creator_profile
@@ -223,8 +226,6 @@ class HotspotWorkflow:
             max_tokens=1500,
         )
         content = resp.get("content", "[]")
-        import json as _json
-        from json_repair import repair_json
         try:
             start = content.find("[")
             end = content.rfind("]") + 1

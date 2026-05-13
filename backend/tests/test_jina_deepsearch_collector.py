@@ -1,6 +1,6 @@
 import pytest
 
-from backend.src.hotspots.collectors.jina_deepsearch import JinaDeepSearchCollector
+from src.hotspots.collectors.jina_deepsearch import JinaDeepSearchCollector
 
 
 class FakeResponse:
